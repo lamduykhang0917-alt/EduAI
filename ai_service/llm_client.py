@@ -8,6 +8,9 @@ DeepSeek...) — chỉ cần viết thêm 1 hàm call_xxx() tương tự rồi t
 ask_llm(), không cần sửa inference.py hay bất kỳ router nào khác.
 """
 
+import os
+import time
+
 import requests
 from . import config
 
@@ -77,24 +80,48 @@ def call_gemini(question: str, course: str = None, course_list=None) -> str:
             "hoặc file backend/.env.example."
         )
 
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{config.GEMINI_MODEL}:generateContent?key={config.GEMINI_API_KEY}"
-    )
-    try:
-        resp = requests.post(
-            url,
-            json={
-                "system_instruction": {"parts": [{"text": _build_system_prompt(course, course_list)}]},
-                "contents": [{"role": "user", "parts": [{"text": question}]}],
-            },
-            timeout=30,
-        )
-    except requests.RequestException as e:
-        raise LLMError(f"Không thể kết nối tới Gemini API: {e}")
+    payload = {
+        "system_instruction": {"parts": [{"text": _build_system_prompt(course, course_list)}]},
+        "contents": [{"role": "user", "parts": [{"text": question}]}],
+    }
 
-    if resp.status_code != 200:
-        raise LLMError(f"Gemini API trả về lỗi ({resp.status_code}): {resp.text[:300]}")
+    # Gemini hay báo quá tải tạm thời (503/429): tự thử lại vài lần, và nếu có cấu hình
+    # GEMINI_FALLBACK_MODEL thì thử thêm model dự phòng trước khi báo lỗi.
+    models = [config.GEMINI_MODEL]
+    fallback = os.environ.get("GEMINI_FALLBACK_MODEL", "").strip()
+    if fallback and fallback != config.GEMINI_MODEL:
+        models.append(fallback)
+
+    retryable = {429, 500, 502, 503, 504}
+    attempts_per_model = 3
+    last_error = "Không rõ nguyên nhân"
+    resp = None
+
+    for model in models:
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent?key={config.GEMINI_API_KEY}"
+        )
+        for attempt in range(1, attempts_per_model + 1):
+            try:
+                resp = requests.post(url, json=payload, timeout=30)
+            except requests.RequestException as e:
+                last_error = f"Không thể kết nối tới Gemini API: {e}"
+                resp = None
+            else:
+                if resp.status_code == 200:
+                    break
+                last_error = f"Gemini API trả về lỗi ({resp.status_code}): {resp.text[:300]}"
+                if resp.status_code not in retryable:
+                    raise LLMError(last_error)
+                resp = None
+            if attempt < attempts_per_model:
+                time.sleep(1.5 * attempt)
+        if resp is not None:
+            break
+
+    if resp is None:
+        raise LLMError(last_error)
 
     data = resp.json()
     try:

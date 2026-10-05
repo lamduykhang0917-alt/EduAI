@@ -33,8 +33,8 @@ Cách làm: Backend deploy lên **Render** (miễn phí), Frontend deploy lên *
 - Gói miễn phí không có ổ đĩa lưu trữ lâu dài, nên dữ liệu (tài khoản mới tạo, kết
   quả bài kiểm tra...) có thể bị reset về dữ liệu demo ban đầu mỗi khi Render khởi
   động lại server (redeploy, hoặc sau thời gian dài không hoạt động). Với mục đích
-  demo/chấm điểm đồ án thì không ảnh hưởng gì; nếu cần lưu dữ liệu vĩnh viễn, cần
-  nâng cấp sang Render Postgres hoặc gói trả phí có persistent disk.
+  demo/chấm điểm đồ án thì không ảnh hưởng gì. Để lưu dữ liệu vĩnh viễn mà vẫn miễn
+  phí, làm theo phần **"Lưu dữ liệu vĩnh viễn (miễn phí) với Backblaze B2"** ở cuối file.
 
 ## Bước 3 — Trỏ Frontend về Backend vừa deploy
 
@@ -76,3 +76,39 @@ tên bạn muốn, ví dụ `eduai-chatbot.netlify.app`.)
 Từ giờ, ai bấm vào link Netlify đó đều dùng được ngay — máy tính của bạn có tắt
 cũng không ảnh hưởng, vì cả backend (Render) và frontend (Netlify) đều chạy trên
 server của họ, không phải máy bạn.
+
+---
+
+## Lưu dữ liệu vĩnh viễn (miễn phí) với Backblaze B2
+
+Backend dùng SQLite nên file dữ liệu nằm trên ổ đĩa tạm của Render. Dùng **Litestream** để
+sao lưu liên tục file này lên Backblaze B2 (miễn phí 10 GB) và tự khôi phục mỗi lần server
+khởi động. Kết quả: tài khoản đăng ký, lịch sử chat, kết quả bài làm **không mất** khi
+Render ngủ/khởi động lại/deploy lại. Các file liên quan: `render.yaml`,
+`backend/start.sh`, `backend/litestream.yml`, `backend/install_litestream.sh`.
+
+### 1. Tạo kho lưu trữ trên Backblaze
+1. Đăng ký tại https://www.backblaze.com/sign-up/cloud-storage (chọn B2 Cloud Storage).
+2. Vào **Buckets → Create a Bucket**: đặt tên (ví dụ `eduai-backup-<tên-bạn>`), chọn **Private**,
+   các mục còn lại để mặc định. Tạo xong, ghi lại **Endpoint** (dạng `s3.us-west-004.backblazeb2.com`)
+   ở trang chi tiết bucket.
+3. Vào **Application Keys → Add a New Application Key**: chọn bucket vừa tạo, quyền **Read and Write**.
+   Bấm tạo và **copy ngay** `keyID` và `applicationKey` (chỉ hiện một lần).
+
+### 2. Thêm biến môi trường trên Render (Environment)
+| Key | Value |
+|---|---|
+| `LITESTREAM_BUCKET` | tên bucket |
+| `LITESTREAM_ENDPOINT` | `https://s3.us-west-004.backblazeb2.com` (đúng endpoint của bạn) |
+| `LITESTREAM_ACCESS_KEY_ID` | `keyID` |
+| `LITESTREAM_SECRET_ACCESS_KEY` | `applicationKey` |
+
+Vùng (region) được tự suy ra từ endpoint. Nếu cần có thể thêm `LITESTREAM_REGION` (ví dụ `us-west-004`).
+
+### 3. Deploy lại
+Đẩy các file mới lên GitHub rồi đồng bộ Blueprint (hoặc Manual Deploy). Trong **Logs** phải thấy:
+`[start] Khôi phục dữ liệu từ bản sao lưu (nếu có)...` rồi `[start] Chạy web kèm sao lưu liên tục.`
+Nếu thấy `CHƯA bật lưu vĩnh viễn` nghĩa là thiếu biến `LITESTREAM_BUCKET` hoặc chưa cài được Litestream.
+
+Lưu ý: nếu khôi phục lỗi (sai khóa, sai endpoint...), server cố ý **dừng** và ghi lỗi vào Logs để
+không tạo dữ liệu trống đè lên bản sao lưu. Sửa biến môi trường rồi deploy lại.
