@@ -2,7 +2,7 @@
    EduAI — API client dùng chung cho toàn bộ frontend
    ============================================================ */
 
-const API_BASE = window.EDUAI_API_BASE || "http://localhost:8000";
+const API_BASE = window.EDUAI_API_BASE || "https://eduai-backend-tdtx.onrender.com";
 
 const Api = {
   token() {
