@@ -163,8 +163,13 @@ def generate_response(question: str, course: Optional[str] = None,
             # Không để chatbot "im lặng" khi chưa cấu hình API key hoặc lỗi mạng —
             # tự động rơi về dataset nội bộ, đồng thời ghi rõ lý do để Admin biết cần sửa gì.
             fallback = _dataset_driven_response(question, course, level)
+            reason = str(e)
+            if "503" in reason or "UNAVAILABLE" in reason or "429" in reason:
+                reason = "dịch vụ AI đang quá tải, bạn thử gửi lại sau ít phút"
+            elif len(reason) > 160:
+                reason = reason[:160].replace("\n", " ") + "..."
             fallback["answer"] = (
-                f"[Chưa gọi được AI ngoài: {e}. Đang dùng dữ liệu nội bộ để trả lời tạm.]\n\n"
+                f"*(Chưa gọi được AI ngoài: {reason}. Đang dùng dữ liệu nội bộ để trả lời tạm.)*\n\n"
                 + fallback["answer"]
             )
             return fallback
