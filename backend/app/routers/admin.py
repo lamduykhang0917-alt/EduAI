@@ -104,8 +104,32 @@ def update_user_status(user_id: int, payload: UpdateUserStatusRequest, admin: di
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, admin: dict = Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(400, "Không thể xóa chính tài khoản đang đăng nhập")
     with get_db() as db:
-        db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        target = db.execute(
+            "SELECT u.id, r.name AS role FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ?",
+            (user_id,),
+        ).fetchone()
+        if target is None:
+            raise HTTPException(404, "Không tìm thấy tài khoản")
+        if target["role"] == "ADMIN":
+            raise HTTPException(400, "Không thể xóa tài khoản Admin")
+        # Xóa dữ liệu liên quan trước (bảng con -> bảng cha) vì khóa ngoại đang bật.
+        uid = (user_id,)
+        db.execute("DELETE FROM chat_feedback WHERE user_id = ? OR message_id IN (SELECT m.id FROM chat_messages m JOIN chat_sessions s ON s.id = m.session_id WHERE s.user_id = ?)", (user_id, user_id))
+        db.execute("DELETE FROM chat_messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = ?)", uid)
+        db.execute("DELETE FROM chat_sessions WHERE user_id = ?", uid)
+        db.execute("DELETE FROM quiz_answers WHERE quiz_result_id IN (SELECT id FROM quiz_results WHERE user_id = ?)", uid)
+        db.execute("DELETE FROM quiz_results WHERE user_id = ?", uid)
+        db.execute("DELETE FROM quiz_results WHERE quiz_id IN (SELECT id FROM quizzes WHERE user_id = ?)", uid)
+        db.execute("DELETE FROM quizzes WHERE user_id = ?", uid)
+        db.execute("DELETE FROM agent_tool_logs WHERE task_id IN (SELECT id FROM agent_tasks WHERE user_id = ?)", uid)
+        db.execute("DELETE FROM agent_tasks WHERE user_id = ?", uid)
+        db.execute("DELETE FROM learning_progress WHERE user_id = ?", uid)
+        db.execute("DELETE FROM recommendations WHERE user_id = ?", uid)
+        db.execute("UPDATE activity_logs SET user_id = NULL WHERE user_id = ?", uid)
+        db.execute("DELETE FROM users WHERE id = ?", uid)
     return {"message": "Đã xóa tài khoản"}
 
 

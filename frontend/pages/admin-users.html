@@ -113,6 +113,7 @@ async function load() {
         <div class="row-actions">
           <button class="btn btn-secondary" onclick='openEditModal(${JSON.stringify(u)})'>Sửa</button>
           <button class="btn btn-secondary" onclick="toggleStatus(${u.id}, '${u.status}')">${u.status === 'active' ? 'Khóa' : 'Mở khóa'}</button>
+          ${u.role === 'ADMIN' ? '' : `<button class="btn btn-secondary" style="color:#dc2626" onclick="deleteUser(${u.id}, '${u.email}')">Xóa</button>`}
         </div>
       </td>
     </tr>`).join("");
@@ -191,6 +192,15 @@ async function saveUser() {
 async function toggleStatus(id, currentStatus) {
   const newStatus = currentStatus === "active" ? "locked" : "active";
   await Api.request(`/api/admin/users/${id}/status`, { method: "PATCH", body: { status: newStatus } });
+  load();
+}
+async function deleteUser(id, email) {
+  if (!confirm(`Xóa vĩnh viễn tài khoản ${email}?\nToàn bộ lịch sử chat, bài làm và tiến độ của tài khoản này cũng bị xóa.`)) return;
+  try {
+    await Api.request(`/api/admin/users/${id}`, { method: "DELETE" });
+  } catch (e) {
+    alert(e.message || "Không xóa được tài khoản");
+  }
   load();
 }
 load();
