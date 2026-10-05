@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cấu hình AI — EduAI Admin</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .config-row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border-subtle); font-size:14px; }
+  .config-row:last-child { border-bottom:none; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--success); display:inline-block; margin-right:6px; }
+  .step-line { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-muted); padding:6px 0; }
+  .step-line.done { color:var(--success); }
+  .step-line .dot { width:8px; height:8px; border-radius:50%; background:var(--border-subtle); flex-shrink:0; }
+  .step-line.done .dot { background:var(--success); }
+  .step-line.active .dot { background:var(--indigo-500); }
+  .empty-hint { text-align:center; padding:32px 16px; color:var(--text-muted); font-size:14px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI Admin</a>
+    <div class="topnav-links">
+    <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item active" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item active" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <h1>Cấu hình AI</h1>
+        <div class="sub">Trạng thái mô hình NLP và dataset</div>
+      </div>
+      <div>
+        <span class="badge badge-green" id="statusBadge"><span class="status-dot"></span>AI Status: Online</span>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:680px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3 style="margin:0 0 4px;">Cấu hình hệ thống</h3>
+          <div style="font-size:13px; color:var(--text-secondary);">Truy xuất và xem thông tin cấu hình AI hiện tại của hệ thống</div>
+        </div>
+        <button class="btn btn-primary" onclick="runConfigFlow()" id="configBtn">⚙️ Cấu hình hệ thống</button>
+      </div>
+
+      <div id="stepBox" style="display:none; margin-top:18px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+        <div class="step-line" id="step1"><span class="dot"></span> Hệ thống tiếp nhận yêu cầu</div>
+        <div class="step-line" id="step2"><span class="dot"></span> Hệ thống truy xuất thông tin cấu hình</div>
+        <div class="step-line" id="step3"><span class="dot"></span> Hệ thống hiển thị thông tin cấu hình hiện tại</div>
+      </div>
+
+      <div id="emptyHint" class="empty-hint">Nhấn "Cấu hình hệ thống" để xem thông tin cấu hình AI hiện tại.</div>
+      <div id="configRows" style="display:none; margin-top:10px;"></div>
+
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button class="btn btn-secondary" onclick="testAi()">🧪 Kiểm tra AI</button>
+        <button class="btn btn-secondary" onclick="reloadModel()">🔄 Reload model / dataset</button>
+      </div>
+      <div id="testResult" style="margin-top:14px; font-size:13px; color:var(--text-secondary); display:none;"></div>
+    </div>
+
+    <div class="card" style="max-width:680px; margin-top:20px;">
+      <h3 style="margin-top:0;">Ghi chú tích hợp AI</h3>
+      <p style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
+        Chatbot hiện được cấu hình để gọi trực tiếp <strong>Claude</strong> hoặc <strong>Gemini</strong> nhằm
+        trả lời tự do bất kỳ câu hỏi nào của sinh viên, không giới hạn trong dataset nội bộ. Cần cấu hình
+        API key trong file <code>backend/.env</code> (sao chép từ <code>.env.example</code>). Nếu chưa có
+        key hoặc gọi API lỗi, hệ thống tự động dùng dữ liệu nội bộ (dataset) để trả lời tạm, không bị gián đoạn.
+      </p>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setStep(id, state) {
+  const el = document.getElementById(id);
+  el.classList.remove("active", "done");
+  if (state) el.classList.add(state);
+}
+
+async function runConfigFlow() {
+  const btn = document.getElementById("configBtn");
+  const stepBox = document.getElementById("stepBox");
+  const emptyHint = document.getElementById("emptyHint");
+  const configRows = document.getElementById("configRows");
+
+  btn.disabled = true;
+  emptyHint.style.display = "none";
+  configRows.style.display = "none";
+  stepBox.style.display = "block";
+
+  // Bước 1: Hệ thống tiếp nhận yêu cầu
+  setStep("step1", "active"); setStep("step2", null); setStep("step3", null);
+  await sleep(350);
+  setStep("step1", "done");
+
+  // Bước 2: Hệ thống truy xuất thông tin cấu hình
+  setStep("step2", "active");
+  let cfg;
+  try {
+    cfg = await Api.request("/api/admin/ai-config");
+  } catch (e) {
+    setStep("step2", null);
+    emptyHint.textContent = "Không thể truy xuất cấu hình: " + e.message;
+    emptyHint.style.display = "block";
+    btn.disabled = false;
+    return;
+  }
+  await sleep(350);
+  setStep("step2", "done");
+
+  // Bước 3: Hệ thống hiển thị thông tin cấu hình hiện tại
+  setStep("step3", "active");
+  await sleep(250);
+  const warningHtml = (cfg.llm_provider !== "dataset" && !cfg.api_key_configured) ? `
+    <div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:8px; padding:12px 14px; font-size:13px; margin-bottom:14px;">
+      ⚠️ Chưa cấu hình API key cho <strong>${cfg.llm_provider === 'claude' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'}</strong>.
+      Chatbot đang tự động dùng dữ liệu nội bộ (dataset) để trả lời tạm — xem hướng dẫn trong <code>backend/.env.example</code>.
+    </div>` : "";
+  configRows.innerHTML = warningHtml + `
+    <div class="config-row"><span>Nhà cung cấp AI</span><strong>${cfg.model}</strong></div>
+    <div class="config-row"><span>API key đã cấu hình</span><strong>${cfg.api_key_configured ? "Có ✅" : "Chưa ❌"}</strong></div>
+    <div class="config-row"><span>Chế độ dự phòng khi lỗi/chưa có key</span><strong>${cfg.fallback_mode || "—"}</strong></div>
+    <div class="config-row"><span>Ngưỡng tin cậy (chỉ áp dụng chế độ dataset)</span><strong>${cfg.confidence_threshold}</strong></div>
+    <div class="config-row"><span>Dataset Intents</span><strong style="font-size:12px;">${cfg.dataset_files.intents.split("/").pop()}</strong></div>
+    <div class="config-row"><span>Dataset Knowledge</span><strong style="font-size:12px;">${cfg.dataset_files.knowledge.split("/").pop()}</strong></div>
+    <div class="config-row"><span>Dataset Quiz</span><strong style="font-size:12px;">${cfg.dataset_files.quiz.split("/").pop()}</strong></div>
+  `;
+  configRows.style.display = "block";
+  setStep("step3", "done");
+  btn.disabled = false;
+}
+
+async function testAi() {
+  const box = document.getElementById("testResult");
+  box.style.display = "block";
+  box.textContent = "Đang gửi câu hỏi kiểm tra tới AI...";
+  try {
+    const res = await Api.chat("Dijkstra là gì?");
+    box.textContent = `✅ AI phản hồi thành công (intent: ${res.intent}, confidence: ${res.confidence})`;
+  } catch (e) {
+    box.textContent = "❌ Lỗi khi kiểm tra AI: " + e.message;
+  }
+}
+
+async function reloadModel() {
+  const res = await Api.request("/api/admin/ai-config/reload", { method: "POST" });
+  const box = document.getElementById("testResult");
+  box.style.display = "block";
+  box.textContent = "✅ " + res.message;
+}
+</script>
+</body>
+</html>

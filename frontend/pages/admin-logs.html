@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoạt động hệ thống — EduAI Admin</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--text-secondary); font-size:11px; text-transform:uppercase; padding:10px 12px; border-bottom:1px solid var(--border-subtle); }
+  td { padding:10px 12px; border-bottom:1px solid var(--border-subtle); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI Admin</a>
+    <div class="topnav-links">
+    <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item active" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item active" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <h1>Hoạt động hệ thống</h1>
+        <div class="sub">Nhật ký hoạt động của người dùng</div>
+      </div>
+      <select id="actionFilter" onchange="load()" style="max-width:200px;">
+        <option value="">Tất cả hành động</option>
+        <option value="login">Đăng nhập</option>
+        <option value="logout">Đăng xuất</option>
+        <option value="ask_ai">Hỏi AI</option>
+        <option value="view_document">Xem tài liệu</option>
+        <option value="submit_quiz">Làm bài kiểm tra</option>
+      </select>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Người dùng</th><th>Hành động</th><th>Chi tiết</th><th>Thời gian</th></tr></thead>
+        <tbody id="logRows"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+const ACTION_LABELS = { login: "Đăng nhập", logout: "Đăng xuất", ask_ai: "Hỏi AI", view_document: "Xem tài liệu", submit_quiz: "Làm bài kiểm tra" };
+async function load() {
+  const action = document.getElementById("actionFilter").value;
+  const qs = action ? `?action=${action}` : "";
+  const logs = await Api.request(`/api/admin/logs${qs}`);
+  document.getElementById("logRows").innerHTML = logs.map(l => `
+    <tr>
+      <td>${l.full_name || "—"}</td>
+      <td><span class="badge badge-blue">${ACTION_LABELS[l.action] || l.action}</span></td>
+      <td>${l.detail || ""}</td>
+      <td>${l.created_at}</td>
+    </tr>`).join("");
+}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+[
+  {
+    "text": "tóm tắt",
+    "intent": "summary"
+  },
+  {
+    "text": "giải thích chi tiết",
+    "intent": "explanation"
+  },
+  {
+    "text": "tạm biệt",
+    "intent": "goodbye"
+  },
+  {
+    "text": "xin chào",
+    "intent": "greeting"
+  },
+  {
+    "text": "thi thử",
+    "intent": "exam"
+  },
+  {
+    "text": "tiến độ của tôi",
+    "intent": "learning_progress"
+  },
+  {
+    "text": "khái niệm",
+    "intent": "knowledge_question"
+  },
+  {
+    "text": "tài liệu về",
+    "intent": "document_search"
+  },
+  {
+    "text": "môn học này nói về gì",
+    "intent": "course_information"
+  },
+  {
+    "text": "gợi ý học tập",
+    "intent": "learning_recommendation"
+  },
+  {
+    "text": "kết quả bài kiểm tra",
+    "intent": "result"
+  },
+  {
+    "text": "tạo câu hỏi ôn tập",
+    "intent": "generate_quiz"
+  }
+]

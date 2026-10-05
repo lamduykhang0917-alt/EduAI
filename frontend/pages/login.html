@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập — EduAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --indigo: #1d4ed8;
+  --indigo-dark: #1e3a8a;
+  --indigo-light: #3b82f6;
+  --blue: #2563eb;
+  --violet: #1d4ed8;
+  --bg: #f8fafc;
+  --white: #ffffff;
+  --text: #0f172a;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ============ KEYFRAMES ============ */
+@keyframes float1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(30px,-20px) scale(1.05); }
+  66%      { transform: translate(-15px, 10px) scale(0.97); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%      { transform: translate(-25px, 30px) scale(1.08); }
+}
+@keyframes float3 {
+  0%,100% { transform: translate(0,0); }
+  40%      { transform: translate(20px,-15px); }
+  75%      { transform: translate(-10px, 20px); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+}
+@keyframes shimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ LEFT PANEL ============ */
+.left {
+  width: 52%;
+  background: #0f0e1a;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Mesh gradient background */
+.left-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 10%, rgba(59,130,246,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 10% 80%, rgba(29,78,216,0.3) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(37,99,235,0.15) 0%, transparent 70%),
+    #0a0918;
+}
+
+/* Animated blobs */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.blob-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(59,130,246,0.4), rgba(37,99,235,0.1));
+  top: -120px; right: -100px;
+  animation: float1 12s ease-in-out infinite;
+}
+.blob-2 {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(29,78,216,0.35), transparent);
+  bottom: -80px; left: -80px;
+  animation: float2 10s ease-in-out infinite;
+}
+.blob-3 {
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(56,189,248,0.2), transparent);
+  top: 40%; left: 35%;
+  animation: float3 14s ease-in-out infinite;
+}
+
+/* Grid overlay */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Left content */
+.left-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 44px 52px;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.6s ease both;
+}
+.logo-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 900; color: white;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.5);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.logo-name {
+  font-size: 20px; font-weight: 900;
+  color: white; letter-spacing: -0.4px;
+}
+.logo-badge {
+  font-size: 10px; font-weight: 700;
+  background: rgba(59,130,246,0.3);
+  border: 1px solid rgba(59,130,246,0.5);
+  color: #93c5fd;
+  padding: 2px 8px; border-radius: 999px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* Hero section */
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 22px;
+  width: fit-content;
+  animation: slideRight 0.6s ease 0.1s both;
+}
+.hero-tag .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.hero h1 {
+  font-size: 40px; font-weight: 900;
+  color: white; line-height: 1.15;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.6s ease 0.15s both;
+}
+.hero h1 .grad {
+  background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 40%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 15px; color: rgba(255,255,255,0.55);
+  line-height: 1.7; max-width: 380px;
+  margin-bottom: 36px;
+  animation: fadeUp 0.6s ease 0.2s both;
+}
+
+/* Feature list */
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeUp 0.6s ease 0.25s both;
+}
+.feat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.feat-dot {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.feat-dot.purple { background: rgba(29,78,216,0.25); border: 1px solid rgba(29,78,216,0.35); }
+.feat-dot.blue   { background: rgba(37,99,235,0.25);  border: 1px solid rgba(37,99,235,0.35); }
+.feat-dot.cyan   { background: rgba(6,182,212,0.2);   border: 1px solid rgba(6,182,212,0.3); }
+.feat-text { font-size: 13.5px; color: rgba(255,255,255,0.7); font-weight: 500; }
+.feat-text strong { color: white; font-weight: 700; }
+
+/* Social proof */
+.proof {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  animation: fadeUp 0.6s ease 0.3s both;
+}
+.av-stack { display: flex; }
+.av {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid #0f0e1a;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: white;
+  margin-right: -8px; flex-shrink: 0;
+}
+.av.g2 { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+.av.g3 { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
+.av.g4 { background: linear-gradient(135deg, #059669, #10b981); }
+.proof-text { margin-left: 14px; }
+.proof-text .num { font-size: 14px; font-weight: 800; color: white; }
+.proof-text .lbl { font-size: 12px; color: rgba(255,255,255,0.45); }
+
+/* Stars */
+.stars { display: flex; gap: 2px; }
+.stars span { font-size: 12px; }
+.rating { font-size: 12px; font-weight: 700; color: #fbbf24; margin-left: 6px; }
+
+/* ============ RIGHT PANEL ============ */
+.right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 48px;
+  background: var(--white);
+  overflow-y: auto;
+}
+
+.form-box {
+  width: 100%; max-width: 400px;
+  animation: fadeUp 0.5s ease 0.1s both;
+}
+
+/* Form top */
+.form-top {
+  margin-bottom: 28px;
+}
+.form-top .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  border: 1px solid #ddd8ff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px; font-weight: 700;
+  color: var(--indigo);
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+.form-top h2 {
+  font-size: 26px; font-weight: 900;
+  color: var(--text); letter-spacing: -0.6px;
+  margin-bottom: 5px;
+}
+.form-top .sub { font-size: 14px; color: var(--text-2); line-height: 1.5; }
+
+/* Error */
+.err-box {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px; color: #dc2626;
+  margin-bottom: 18px;
+  font-weight: 500;
+}
+.err-box svg { flex-shrink: 0; }
+
+/* Field */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: 7px;
+}
+.input-wrap {
+  position: relative;
+}
+.input-wrap .ico {
+  position: absolute; left: 13px; top: 50%;
+  transform: translateY(-50%);
+  width: 18px; height: 18px;
+  pointer-events: none;
+  color: var(--text-3);
+}
+.input-wrap input {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 42px 11px 40px;
+  font-size: 14px; font-family: inherit;
+  color: var(--text);
+  background: #fcfcff;
+  outline: none;
+  transition: all 0.18s;
+}
+.input-wrap input::placeholder { color: var(--text-3); }
+.input-wrap input:hover { border-color: #c7d2fe; }
+.input-wrap input:focus {
+  border-color: var(--indigo);
+  background: #fefeff;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+}
+.eye-btn {
+  position: absolute; right: 11px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  cursor: pointer; padding: 4px;
+  color: var(--text-3); border-radius: 6px;
+  transition: all 0.15s;
+  display: flex; align-items: center;
+}
+.eye-btn:hover { color: var(--indigo); background: #eff6ff; }
+
+/* Row between */
+.row-mid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.remember {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--text-2); cursor: pointer;
+  font-weight: 500;
+}
+.remember input {
+  width: 15px; height: 15px;
+  accent-color: var(--indigo); cursor: pointer;
+}
+.forgot {
+  font-size: 13px; font-weight: 600;
+  color: var(--indigo); text-decoration: none;
+  transition: opacity 0.15s;
+}
+.forgot:hover { opacity: 0.7; }
+
+/* Submit button */
+.submit-btn {
+  width: 100%;
+  padding: 13px;
+  border: none; border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #2563eb 100%);
+  color: white;
+  font-size: 15px; font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: -0.1px;
+  box-shadow: 0 4px 18px rgba(37,99,235,0.4);
+  transition: all 0.18s;
+  position: relative;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.submit-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  transform: skewX(-15deg);
+  transition: none;
+}
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(37,99,235,0.5);
+}
+.submit-btn:hover::after { animation: shimmer 0.7s ease; }
+.submit-btn:active { transform: translateY(0); box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+.submit-btn .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+/* ===== DEMO SECTION ===== */
+.demo-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 22px 0 14px;
+}
+.demo-divider::before, .demo-divider::after {
+  content: ''; flex: 1; height: 1px; background: #e8e6f8;
+}
+.demo-divider span {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-3); letter-spacing: 0.07em;
+  text-transform: uppercase; white-space: nowrap;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.demo-btn {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fafaff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+.demo-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.demo-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+
+/* Student button */
+.demo-btn.student {
+  border-color: #c7d2fe;
+}
+.demo-btn.student::before {
+  background: linear-gradient(135deg, rgba(59,130,246,0.04), rgba(37,99,235,0.04));
+}
+.demo-btn.student:hover {
+  border-color: var(--indigo);
+  background: #f5f3ff;
+}
+.demo-btn.student:hover::before { opacity: 1; }
+
+/* Admin button */
+.demo-btn.admin {
+  border-color: #fde68a;
+}
+.demo-btn.admin::before {
+  background: linear-gradient(135deg, rgba(245,158,11,0.05), rgba(249,115,22,0.04));
+}
+.demo-btn.admin:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+.demo-btn.admin:hover::before { opacity: 1; }
+
+.demo-btn .db-top {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px;
+}
+.demo-btn .db-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.student .db-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.admin .db-icon { background: linear-gradient(135deg, #f59e0b, #f97316); }
+
+.demo-btn .db-label {
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.demo-btn .db-role {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 999px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.student .db-role { background: #dbeafe; color: var(--indigo); }
+.admin .db-role   { background: #fef3c7; color: #b45309; }
+
+.demo-btn .db-email {
+  font-size: 11px; color: var(--text-3);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.demo-btn .db-click {
+  font-size: 11px; font-weight: 600; margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.demo-btn:hover .db-click { opacity: 1; }
+.student .db-click { color: var(--indigo); }
+.admin .db-click { color: #d97706; }
+
+/* Switch */
+.switch-line {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px; color: var(--text-2);
+}
+.switch-line a {
+  color: var(--indigo); font-weight: 700; text-decoration: none;
+  transition: opacity 0.15s;
+}
+.switch-line a:hover { opacity: 0.75; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 860px) {
+  body { flex-direction: column; overflow: auto; }
+  .left { display: none; }
+  .right { padding: 32px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div class="left">
+  <div class="left-bg"></div>
+  <div class="grid-overlay"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="left-content">
+    <!-- Logo -->
+    <div class="logo">
+      <div class="logo-icon">E</div>
+      <span class="logo-name">EduAI</span>
+      <span class="logo-badge">Beta</span>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-tag">
+        <span class="dot"></span>
+        Hệ thống đang hoạt động
+      </div>
+
+      <h1>Học thông minh<br>cùng <span class="grad">trí tuệ AI</span></h1>
+
+      <p>Trợ lý AI đồng hành 24/7 — hỏi đáp kiến thức, tóm tắt tài liệu, luyện tập và theo dõi tiến độ học tập trong một nền tảng duy nhất.</p>
+
+      <div class="features">
+        <div class="feat">
+          <div class="feat-dot purple">💬</div>
+          <div class="feat-text"><strong>Hỏi đáp tức thì</strong> — AI giải đáp mọi bài học trong vài giây</div>
+        </div>
+        <div class="feat">
+          <div class="feat-dot blue">📄</div>
+          <div class="feat-text"><strong>Tóm tắt thông minh</strong> — Upload PDF, nhận tóm tắt ngay lập tức</div>
+        </div>
+        <div class="feat">
+          <div class="feat-dot cyan">📊</div>
+          <div class="feat-text"><strong>Theo dõi tiến độ</strong> — Báo cáo học tập cá nhân hóa theo từng môn</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social proof -->
+    <div class="proof">
+      <div class="av-stack">
+        <div class="av">AN</div>
+        <div class="av g2">BT</div>
+        <div class="av g3">CL</div>
+        <div class="av g4">DK</div>
+      </div>
+      <div class="proof-text">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div class="stars">
+            <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+          </div>
+          <span class="rating">4.9</span>
+        </div>
+        <div class="num" style="margin-top:3px;">1,200+ sinh viên</div>
+        <div class="lbl">đang học mỗi ngày</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right">
+  <div class="form-box">
+    <div class="form-top">
+      <div class="tag">👋 Chào mừng trở lại</div>
+      <h2>Đăng nhập vào EduAI</h2>
+      <div class="sub">Tiếp tục hành trình học tập của bạn ngay hôm nay</div>
+    </div>
+
+    <!-- Error box -->
+    <div class="err-box" id="errBox">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="7" stroke="#dc2626" stroke-width="1.5"/>
+        <path d="M8 4.5V8.5M8 10.5V11" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span id="errText"></span>
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <svg class="ico" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.5 5.5C2.5 4.95 2.95 4.5 3.5 4.5h13c.55 0 1 .45 1 1v9c0 .55-.45 1-1 1h-13c-.55 0-1-.45-1-1v-9z" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M2.5 5.5L10 11l7.5-5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <input type="email" id="email" placeholder="ten@student.edu.vn" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Mật khẩu</label>
+        <div class="input-wrap">
+          <svg class="ico" viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="10" cy="13.5" r="1.5" fill="currentColor"/>
+          </svg>
+          <input type="password" id="password" placeholder="Nhập mật khẩu" required autocomplete="current-password">
+          <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePw()">
+            <svg id="eyeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M1 12C1 12 5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="row-mid">
+        <label class="remember">
+          <input type="checkbox" id="rememberMe"> Ghi nhớ đăng nhập
+        </label>
+        <a href="#" class="forgot" onclick="alert('Vui lòng liên hệ Admin để đặt lại mật khẩu.'); return false;">Quên mật khẩu?</a>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnText">Đăng nhập</span>
+        <svg id="arrowIcon" width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="switch-line">
+      Chưa có tài khoản? <a href="register.html">Đăng ký miễn phí →</a>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+  // Toggle password visibility
+  function togglePw() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.innerHTML = `
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`;
+    } else {
+      input.type = 'password';
+      icon.innerHTML = `
+        <path d="M1 12C1 12 5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>`;
+    }
+  }
+
+  // Fill demo credentials and animate
+
+  // Form submit
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errBox   = document.getElementById('errBox');
+    const errText  = document.getElementById('errText');
+    const btn      = document.getElementById('submitBtn');
+    const btnText  = document.getElementById('btnText');
+    const spinner  = document.getElementById('spinner');
+    const arrow    = document.getElementById('arrowIcon');
+
+    errBox.style.display = 'none';
+    btn.disabled  = true;
+    spinner.style.display = 'block';
+    arrow.style.display   = 'none';
+    btnText.textContent   = 'Đang đăng nhập...';
+
+    try {
+      const email    = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const data = await Api.login(email, password);
+      Api.setToken(data.access_token);
+
+      spinner.style.display = 'none';
+      btnText.textContent   = '✓ Thành công!';
+      btn.style.background  = 'linear-gradient(135deg,#22c55e,#16a34a)';
+      btn.style.boxShadow   = '0 4px 16px rgba(34,197,94,0.4)';
+
+      setTimeout(() => {
+        window.location.href = data.role === 'ADMIN' ? 'admin-dashboard.html' : 'dashboard.html';
+      }, 500);
+
+    } catch (err) {
+      errText.textContent = err.message;
+      errBox.style.display = 'flex';
+      btn.disabled  = false;
+      spinner.style.display = 'none';
+      arrow.style.display   = '';
+      btnText.textContent   = 'Đăng nhập';
+
+      // Shake animation
+      btn.style.animation = 'none';
+      btn.style.transform = 'translateX(-4px)';
+      setTimeout(() => { btn.style.transform = 'translateX(4px)'; }, 80);
+      setTimeout(() => { btn.style.transform = 'translateX(-3px)'; }, 160);
+      setTimeout(() => { btn.style.transform = 'translateX(0)'; }, 240);
+    }
+  });
+</script>
+</body>
+</html>

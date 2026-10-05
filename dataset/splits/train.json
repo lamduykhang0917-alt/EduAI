@@ -1,0 +1,138 @@
+[
+  {
+    "text": "cho tôi biết về môn",
+    "intent": "course_information"
+  },
+  {
+    "text": "tạo bài tập",
+    "intent": "generate_quiz"
+  },
+  {
+    "text": "cho tôi câu hỏi",
+    "intent": "generate_quiz"
+  },
+  {
+    "text": "vì sao",
+    "intent": "explanation"
+  },
+  {
+    "text": "làm bài kiểm tra",
+    "intent": "exam"
+  },
+  {
+    "text": "tiến độ học tập",
+    "intent": "learning_progress"
+  },
+  {
+    "text": "giải thích",
+    "intent": "explanation"
+  },
+  {
+    "text": "định nghĩa",
+    "intent": "knowledge_question"
+  },
+  {
+    "text": "ý chính của",
+    "intent": "summary"
+  },
+  {
+    "text": "là gì",
+    "intent": "knowledge_question"
+  },
+  {
+    "text": "xem kết quả",
+    "intent": "result"
+  },
+  {
+    "text": "tại sao",
+    "intent": "explanation"
+  },
+  {
+    "text": "điểm của tôi",
+    "intent": "result"
+  },
+  {
+    "text": "cho tôi tài liệu",
+    "intent": "document_search"
+  },
+  {
+    "text": "tìm tài liệu",
+    "intent": "document_search"
+  },
+  {
+    "text": "đề xuất cho tôi",
+    "intent": "learning_recommendation"
+  },
+  {
+    "text": "môn học gồm những gì",
+    "intent": "course_information"
+  },
+  {
+    "text": "tạo 10 câu hỏi",
+    "intent": "generate_quiz"
+  },
+  {
+    "text": "hello",
+    "intent": "greeting"
+  },
+  {
+    "text": "bye",
+    "intent": "goodbye"
+  },
+  {
+    "text": "giải thích rõ hơn",
+    "intent": "explanation"
+  },
+  {
+    "text": "nội dung chính",
+    "intent": "summary"
+  },
+  {
+    "text": "hi",
+    "intent": "greeting"
+  },
+  {
+    "text": "hẹn gặp lại",
+    "intent": "goodbye"
+  },
+  {
+    "text": "tôi học được bao nhiêu",
+    "intent": "learning_progress"
+  },
+  {
+    "text": "tạo đề",
+    "intent": "generate_quiz"
+  },
+  {
+    "text": "chào eduai",
+    "intent": "greeting"
+  },
+  {
+    "text": "bắt đầu kiểm tra",
+    "intent": "exam"
+  },
+  {
+    "text": "thông tin môn học",
+    "intent": "course_information"
+  },
+  {
+    "text": "nên học gì tiếp theo",
+    "intent": "learning_recommendation"
+  },
+  {
+    "text": "cảm ơn nhé",
+    "intent": "goodbye"
+  },
+  {
+    "text": "tóm tắt giúp tôi",
+    "intent": "summary"
+  },
+  {
+    "text": "chào bạn",
+    "intent": "greeting"
+  },
+  {
+    "text": "có tài liệu nào về",
+    "intent": "document_search"
+  }
+]

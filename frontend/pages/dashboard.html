@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — EduAI</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .welcome-banner {
+    background: var(--gradient-ai);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    color: white;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .welcome-banner::before {
+    content: '';
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07);
+    pointer-events: none;
+  }
+  .welcome-banner::after {
+    content: '';
+    position: absolute;
+    right: 80px; bottom: -50px;
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    pointer-events: none;
+  }
+  .welcome-banner h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    z-index: 1;
+    position: relative;
+  }
+  .welcome-banner p {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.8;
+    z-index: 1;
+    position: relative;
+  }
+  .welcome-banner .banner-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn-white {
+    background: white;
+    color: var(--indigo-600);
+    border: none;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .btn-white:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+  .btn-white-ghost {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    backdrop-filter: blur(4px);
+  }
+  .btn-white-ghost:hover { background: rgba(255,255,255,0.25); }
+
+  /* Section title */
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+    letter-spacing: -0.3px;
+  }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* Progress item */
+  .progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+  .progress-header .name { font-weight: 600; color: var(--text-primary); }
+  .progress-header .pct {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--indigo-600);
+    background: var(--indigo-50);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  /* Recommendation card */
+  .rec-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--indigo-50), var(--blue-50));
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .rec-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Activity items */
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+    color: var(--text-secondary);
+    animation: slideIn 0.3s ease both;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .activity-text span { display: block; font-weight: 600; color: var(--text-primary); font-size: 13px; }
+  .activity-text small { font-size: 12px; color: var(--text-muted); }
+
+  @media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .stat-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI</a>
+    <div class="topnav-links">
+    <a class="nav-item active" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item" href="quiz-list.html">📝 Ôn tập &amp; Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item active" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item" href="quiz-list.html">📝 Ôn tập &amp; Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+
+  <main class="main-content">
+    <div class="topbar animate-fade-in">
+      <div>
+        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <h1 id="greeting">Chào mừng trở lại 👋</h1>
+        <div class="sub">Đây là tổng quan việc học của bạn hôm nay.</div>
+      </div>
+    </div>
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner animate-fade-in-up">
+      <h2 id="bannerGreeting">Hôm nay bạn muốn học gì? 🎯</h2>
+      <p>Tiếp tục học tập để đạt mục tiêu của bạn. Trợ lý AI luôn sẵn sàng hỗ trợ!</p>
+      <div class="banner-actions">
+        <a href="chatbot.html" class="btn-white">💬 Hỏi AI ngay</a>
+        <a href="courses.html" class="btn-white-ghost">📚 Xem môn học</a>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-grid" id="statCards"></div>
+
+    <!-- Progress + Recommendations -->
+    <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px;">
+      <div class="card animate-fade-in-up delay-2">
+        <h3 class="section-title">📈 Tiến độ theo môn</h3>
+        <div id="progressList" style="display:flex; flex-direction:column; gap:16px;"></div>
+      </div>
+
+      <div class="card animate-fade-in-up delay-3">
+        <h3 class="section-title">💡 Đề xuất học tập</h3>
+        <div id="recommendationBox"></div>
+        <a href="chatbot.html" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;">
+          Hỏi AI ngay →
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card animate-fade-in-up delay-4">
+      <h3 class="section-title">🕐 Hoạt động gần đây</h3>
+      <div id="activityList"></div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+
+async function load() {
+  try {
+    const me = await Api.me();
+    const name = me.full_name.split(" ").pop();
+    document.getElementById("greeting").textContent = `Chào ${name} 👋`;
+    document.getElementById("bannerGreeting").textContent = `Hôm nay bạn muốn học gì, ${name}? 🎯`;
+
+    const [progress, courses, recs] = await Promise.all([
+      Api.progress(), Api.courses(), Api.recommendations()
+    ]);
+
+    const iconMap = { 0: { bg: '#eff6ff', ic: '📚' }, 1: { bg: '#f0fdf4', ic: '📝' }, 2: { bg: '#fffbeb', ic: '⭐' }, 3: { bg: '#f5f3ff', ic: '🔥' } };
+    const statCards = document.getElementById("statCards");
+    const topCourse = progress.by_course.length
+      ? progress.by_course.sort((a,b) => b.percent_complete - a.percent_complete)[0].course_name
+      : "—";
+
+    const stats = [
+      { label: 'Môn học đang học', value: courses.length, icon: '📚', bg: '#eff6ff' },
+      { label: 'Bài kiểm tra hoàn thành', value: progress.total_quizzes_completed, icon: '📝', bg: '#f0fdf4' },
+      { label: 'Điểm trung bình', value: `${progress.average_score}/10`, icon: '⭐', bg: '#fffbeb' },
+      { label: 'Môn tiến độ cao nhất', value: topCourse, icon: '🔥', bg: '#f5f3ff', small: true }
+    ];
+
+    statCards.innerHTML = stats.map((s, i) => `
+      <div class="stat-card animate-fade-in-up" style="animation-delay: ${0.1 + i * 0.07}s">
+        <div class="icon" style="background:${s.bg};">${s.icon}</div>
+        <div class="label">${s.label}</div>
+        <div class="value" style="${s.small ? 'font-size:15px;font-weight:700;' : ''}">${s.value}</div>
+      </div>`).join('');
+
+    const progressList = document.getElementById("progressList");
+    if (progress.by_course.length === 0) {
+      progressList.innerHTML = `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có dữ liệu. Hãy bắt đầu học!</div>`;
+    } else {
+      progressList.innerHTML = progress.by_course.map(p => `
+        <div class="progress-item">
+          <div class="progress-header">
+            <span class="name">${p.course_name}</span>
+            <span class="pct">${Math.round(p.percent_complete)}%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:${p.percent_complete}%;"></div></div>
+        </div>`).join('');
+    }
+
+    const recBox = document.getElementById("recommendationBox");
+    recBox.innerHTML = recs.length
+      ? recs.map(r => `<div class="rec-item"><span class="rec-icon">💡</span><span>${r.content}</span></div>`).join('')
+      : `<div style="font-size:14px;color:var(--text-muted);">Chưa có đề xuất. Hãy học thêm để nhận gợi ý!</div>`;
+
+    const activity = await Api.recentActivity();
+    const activityList = document.getElementById("activityList");
+    const ACTION_META = {
+      ask_ai: { icon: "💬", bg: "#eef2ff", label: d => `Đã hỏi AI: "${d}"` },
+      submit_quiz: { icon: "✅", bg: "#f0fdf4", label: () => "Đã hoàn thành một bài kiểm tra" },
+      view_document: { icon: "📄", bg: "#fffbeb", label: d => `Đã xem tài liệu: ${d}` },
+      update_profile: { icon: "🧑", bg: "#f5f3ff", label: () => "Đã cập nhật hồ sơ cá nhân" },
+    };
+    if (activity.length === 0) {
+      activityList.innerHTML = `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có hoạt động nào. Hãy bắt đầu học tập!</div>`;
+    } else {
+      activityList.innerHTML = activity.map((a, i) => {
+        const meta = ACTION_META[a.action] || { icon: "🔔", bg: "#f3f4f6", label: () => a.action };
+        return `
+      <div class="activity-item" style="animation-delay:${i * 0.08}s">
+        <div class="activity-dot" style="background:${meta.bg};">${meta.icon}</div>
+        <div class="activity-text">
+          <span>${meta.label(a.detail)}</span>
+          <small>${a.created_at}</small>
+        </div>
+      </div>`;
+      }).join('');
+    }
+
+  } catch (err) { console.error(err); }
+}
+load();
+</script>
+</body>
+</html>

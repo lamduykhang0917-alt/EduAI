@@ -1,0 +1,353 @@
+{
+  "model": "KeywordIntentClassifier",
+  "evaluation_method": "classifier trained on train+val split patterns only, evaluated on held-out test split",
+  "test_set_size": 12,
+  "accuracy": 0.5833,
+  "precision_macro": 0.5417,
+  "recall_macro": 0.5833,
+  "f1_macro": 0.5556,
+  "per_label": {
+    "course_information": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "document_search": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "exam": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "explanation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "generate_quiz": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "goodbye": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "greeting": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "knowledge_question": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "learning_progress": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667
+    },
+    "learning_recommendation": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "result": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "summary": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "confusion_matrix": {
+    "course_information": {
+      "course_information": 1,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "document_search": {
+      "course_information": 0,
+      "document_search": 1,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "exam": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 1
+    },
+    "explanation": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 1,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "generate_quiz": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 1,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "goodbye": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 1
+    },
+    "greeting": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 1,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "knowledge_question": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 1
+    },
+    "learning_progress": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 1,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "learning_recommendation": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 1,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "result": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 1,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 0,
+      "unknown": 0
+    },
+    "summary": {
+      "course_information": 0,
+      "document_search": 0,
+      "exam": 0,
+      "explanation": 0,
+      "generate_quiz": 0,
+      "goodbye": 0,
+      "greeting": 0,
+      "knowledge_question": 0,
+      "learning_progress": 0,
+      "learning_recommendation": 0,
+      "result": 0,
+      "summary": 1,
+      "unknown": 0
+    }
+  },
+  "labels": [
+    "course_information",
+    "document_search",
+    "exam",
+    "explanation",
+    "generate_quiz",
+    "goodbye",
+    "greeting",
+    "knowledge_question",
+    "learning_progress",
+    "learning_recommendation",
+    "result",
+    "summary"
+  ],
+  "details": [
+    {
+      "text": "tóm tắt",
+      "true_intent": "summary",
+      "predicted_intent": "summary",
+      "confidence": 1.0,
+      "correct": true
+    },
+    {
+      "text": "giải thích chi tiết",
+      "true_intent": "explanation",
+      "predicted_intent": "explanation",
+      "confidence": 1.0,
+      "correct": true
+    },
+    {
+      "text": "tạm biệt",
+      "true_intent": "goodbye",
+      "predicted_intent": "unknown",
+      "confidence": 0.0,
+      "correct": false
+    },
+    {
+      "text": "xin chào",
+      "true_intent": "greeting",
+      "predicted_intent": "greeting",
+      "confidence": 1.0,
+      "correct": true
+    },
+    {
+      "text": "thi thử",
+      "true_intent": "exam",
+      "predicted_intent": "unknown",
+      "confidence": 0.0,
+      "correct": false
+    },
+    {
+      "text": "tiến độ của tôi",
+      "true_intent": "learning_progress",
+      "predicted_intent": "learning_progress",
+      "confidence": 0.5,
+      "correct": true
+    },
+    {
+      "text": "khái niệm",
+      "true_intent": "knowledge_question",
+      "predicted_intent": "unknown",
+      "confidence": 0.0,
+      "correct": false
+    },
+    {
+      "text": "tài liệu về",
+      "true_intent": "document_search",
+      "predicted_intent": "document_search",
+      "confidence": 1.0,
+      "correct": true
+    },
+    {
+      "text": "môn học này nói về gì",
+      "true_intent": "course_information",
+      "predicted_intent": "course_information",
+      "confidence": 0.75,
+      "correct": true
+    },
+    {
+      "text": "gợi ý học tập",
+      "true_intent": "learning_recommendation",
+      "predicted_intent": "learning_progress",
+      "confidence": 0.5,
+      "correct": false
+    },
+    {
+      "text": "kết quả bài kiểm tra",
+      "true_intent": "result",
+      "predicted_intent": "exam",
+      "confidence": 0.75,
+      "correct": false
+    },
+    {
+      "text": "tạo câu hỏi ôn tập",
+      "true_intent": "generate_quiz",
+      "predicted_intent": "generate_quiz",
+      "confidence": 1.0,
+      "correct": true
+    }
+  ]
+}

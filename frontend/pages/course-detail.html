@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chi tiết môn học — EduAI</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .chapter-item, .doc-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 12px 14px; border:1px solid var(--border-subtle); border-radius: var(--radius-sm);
+    margin-bottom: 8px; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI</a>
+    <div class="topnav-links">
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item active" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item" href="quiz-list.html">📝 Ôn tập & Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item active" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item" href="quiz-list.html">📝 Ôn tập & Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <a href="courses.html" style="font-size:13px; color:var(--text-secondary);">← Quay lại Môn học</a>
+        <h1 id="courseTitle">Đang tải...</h1>
+        <div class="sub" id="courseDesc"></div>
+      </div>
+      <button class="btn btn-primary" id="askAiBtn">💬 Hỏi AI về môn học này</button>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+      <div class="card">
+        <h3 style="margin-top:0;">Danh sách chương</h3>
+        <div id="chapterList"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Tài liệu</h3>
+        <div id="docList"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+const id = new URLSearchParams(window.location.search).get("id");
+
+async function load() {
+  const data = await Api.course(id);
+  document.getElementById("courseTitle").textContent = data.course.name;
+  document.getElementById("courseDesc").textContent = data.course.description || "";
+  document.getElementById("askAiBtn").onclick = () => {
+    window.location.href = `chatbot.html?course=${encodeURIComponent(data.course.name)}`;
+  };
+
+  document.getElementById("chapterList").innerHTML = data.chapters.length
+    ? data.chapters.map(c => `<div class="chapter-item"><span>${c.name}</span></div>`).join("")
+    : `<div style="color:var(--text-muted); font-size:14px;">Chưa có chương nào.</div>`;
+
+  document.getElementById("docList").innerHTML = data.documents.length
+    ? data.documents.map(d => `<div class="doc-item"><span>${d.title}</span><span class="badge badge-blue">${d.file_type}</span></div>`).join("")
+    : `<div style="color:var(--text-muted); font-size:14px;">Chưa có tài liệu nào cho môn học này.</div>`;
+}
+load();
+</script>
+</body>
+</html>

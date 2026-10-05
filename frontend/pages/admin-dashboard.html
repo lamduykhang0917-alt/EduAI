@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — EduAI</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI Admin</a>
+    <div class="topnav-links">
+    <a class="nav-item active" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item active" href="admin-dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
+    <a class="nav-item" href="admin-courses.html">📚 Môn học</a>
+    <a class="nav-item" href="admin-questions.html">🗂️ Ngân hàng câu hỏi</a>
+    <a class="nav-item" href="admin-logs.html">🕒 Hoạt động hệ thống</a>
+    <a class="nav-item" href="admin-ai-config.html">🤖 Cấu hình AI</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <h1>Admin Dashboard</h1>
+        <div class="sub">Tổng quan hệ thống EduAI</div>
+      </div>
+    </div>
+    <div class="grid grid-4" id="statCards"></div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+async function load() {
+  const stats = await Api.request("/api/admin/dashboard");
+  const items = [
+    ["👤", "Tổng sinh viên", stats.total_students, "#eff6ff"],
+    ["📚", "Tổng môn học", stats.total_courses, "#f0fdf4"],
+    ["📖", "Tổng chương", stats.total_chapters, "#fffbeb"],
+    ["📄", "Tổng tài liệu", stats.total_documents, "#eef2ff"],
+    ["❓", "Tổng câu hỏi", stats.total_questions, "#fdf4ff"],
+    ["💬", "Tổng lượt hỏi AI", stats.total_ai_queries, "#f0f9ff"],
+  ];
+  document.getElementById("statCards").innerHTML = items.map(([icon, label, value, bg]) => `
+    <div class="card stat-card">
+      <div class="icon" style="background:${bg};">${icon}</div>
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+    </div>`).join("");
+}
+load();
+</script>
+</body>
+</html>

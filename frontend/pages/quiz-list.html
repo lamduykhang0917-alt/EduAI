@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ôn tập & Kiểm tra — EduAI</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; max-width:560px; }
+  .difficulty-options { display:flex; gap:8px; }
+  .diff-chip {
+    flex:1; text-align:center; padding:10px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm);
+    font-size:13px; cursor:pointer;
+  }
+  .diff-chip.selected { border-color: var(--indigo-500); background:#eef2ff; color:var(--indigo-600); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="topnav">
+  <div class="topnav-inner">
+    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI</a>
+    <div class="topnav-links">
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item active" href="quiz-list.html">📝 Ôn tập & Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    </div>
+  <div class="topnav-actions">
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+  </div>
+  <div class="topnav-mobile">
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item" href="courses.html">📚 Môn học</a>
+    <a class="nav-item" href="documents.html">📄 Tài liệu</a>
+    <a class="nav-item" href="chatbot.html">💬 Hỏi AI</a>
+    <a class="nav-item active" href="quiz-list.html">📝 Ôn tập & Kiểm tra</a>
+    <a class="nav-item" href="progress.html">📈 Tiến độ học tập</a>
+    <a class="nav-item" href="#" onclick="logout(); return false;">🚪 Đăng xuất</a>
+  </div>
+</nav>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <h1>Tạo câu hỏi ôn tập</h1>
+        <div class="sub">Chọn môn học và tùy chỉnh bài kiểm tra của bạn</div>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:640px;">
+      <div class="form-grid">
+        <div>
+          <label>Môn học</label>
+          <select id="courseSelect"></select>
+        </div>
+        <div>
+          <label>Số câu hỏi</label>
+          <select id="numQuestions">
+            <option>3</option><option selected>5</option><option>10</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <label>Độ khó</label>
+        <div class="difficulty-options" id="diffOptions">
+          <div class="diff-chip" data-val="basic">Cơ bản</div>
+          <div class="diff-chip selected" data-val="">Tất cả</div>
+          <div class="diff-chip" data-val="medium">Trung bình</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:22px;" onclick="generate()" id="genBtn">Tạo câu hỏi</button>
+      <div id="errorMsg" style="color:var(--danger); font-size:13px; margin-top:10px; display:none;"></div>
+    </div>
+
+    <div class="card" style="max-width:640px; margin-top:20px;">
+      <h3 style="margin-top:0;">Kết quả gần đây</h3>
+      <div id="resultsList" style="font-size:14px; color:var(--text-secondary);"></div>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script>
+requireAuth();
+let selectedDifficulty = "";
+
+document.querySelectorAll(".diff-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll(".diff-chip").forEach(c => c.classList.remove("selected"));
+    chip.classList.add("selected");
+    selectedDifficulty = chip.dataset.val;
+  });
+});
+
+async function init() {
+  const courses = await Api.courses();
+  const sel = document.getElementById("courseSelect");
+  courses.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.name; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+
+  const results = await Api.results();
+  const list = document.getElementById("resultsList");
+  list.innerHTML = results.length
+    ? results.slice(0, 5).map(r => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle);">
+          <span>${r.course_name || "—"} (${r.difficulty})</span>
+          <span style="font-weight:600; color:var(--text-primary);">${r.score}/10</span>
+        </div>`).join("")
+    : "Bạn chưa có kết quả kiểm tra nào.";
+}
+
+async function generate() {
+  const course = document.getElementById("courseSelect").value;
+  const num_questions = parseInt(document.getElementById("numQuestions").value);
+  const errorMsg = document.getElementById("errorMsg");
+  errorMsg.style.display = "none";
+  const btn = document.getElementById("genBtn");
+  btn.disabled = true;
+  btn.textContent = "Đang tạo...";
+
+  try {
+    const data = await Api.generateQuiz(course, num_questions, selectedDifficulty || undefined);
+    sessionStorage.setItem("eduai_current_quiz", JSON.stringify(data));
+    window.location.href = "quiz-take.html";
+  } catch (err) {
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Tạo câu hỏi";
+  }
+}
+
+init();
+</script>
+</body>
+</html>
