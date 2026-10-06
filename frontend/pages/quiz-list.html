@@ -5,13 +5,26 @@
 <title>Ôn tập & Kiểm tra — EduAI</title>
 <link rel="stylesheet" href="../css/style.css">
 <style>
-  .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; max-width:560px; }
-  .difficulty-options { display:flex; gap:8px; }
-  .diff-chip {
-    flex:1; text-align:center; padding:10px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm);
-    font-size:13px; cursor:pointer;
-  }
-  .diff-chip.selected { border-color: var(--indigo-500); background:#eef2ff; color:var(--indigo-600); font-weight:600; }
+  .quiz-layout { display:grid; grid-template-columns: 1.6fr 1fr; gap:22px; align-items:start; }
+  @media (max-width: 1000px) { .quiz-layout { grid-template-columns: 1fr; } }
+  .quiz-form { padding:32px; }
+  .quiz-form label { display:block; font-size:13px; font-weight:700; margin-bottom:8px; color:var(--text-primary); }
+  .quiz-form select { font-size:15px; padding:13px 14px; border-radius:12px; width:100%; }
+  .form-grid { display:grid; grid-template-columns: 1.6fr 1fr; gap:18px; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  .avail { margin-top:14px; font-size:13.5px; color:var(--text-secondary); background:var(--indigo-50); border:1px solid var(--indigo-100); padding:10px 14px; border-radius:10px; }
+  .difficulty-options { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px; }
+  .diff-chip { text-align:center; padding:16px 10px; border:1.5px solid var(--border-subtle); border-radius:14px; font-size:14.5px; font-weight:600; cursor:pointer; background:#fff; transition:all .15s; }
+  .diff-chip:hover { border-color:var(--indigo-400); }
+  .diff-chip.selected { border-color: var(--indigo-600); background:var(--indigo-50); color:var(--indigo-700); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .gen-btn { margin-top:28px; width:100%; justify-content:center; padding:15px; font-size:16px; border-radius:14px; }
+  .quiz-side { display:flex; flex-direction:column; gap:18px; }
+  .tips { background:linear-gradient(135deg,#fffbeb,#fff7ed); border-color:#fde68a; }
+  .tips ul { margin:0; padding-left:18px; font-size:14px; color:#92400e; line-height:1.8; }
+  .res-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+  .res-row:last-child { border-bottom:none; }
+  .res-row .nm { flex:1; font-weight:600; color:var(--text-primary); font-size:14px; }
+  .res-row .nm small { display:block; font-weight:400; color:var(--text-muted); font-size:12px; }
 </style>
 </head>
 <body>
@@ -42,43 +55,57 @@
   </div>
 </nav>
   <main class="main-content">
-    <div class="topbar">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1>Tạo câu hỏi ôn tập</h1>
-        <div class="sub">Chọn môn học và tùy chỉnh bài kiểm tra của bạn</div>
+    <section class="page-hero" style="background:linear-gradient(120deg,#0f766e 0%,#2563eb 70%,#4f46e5 120%);">
+      <div class="copy">
+        <h2>Ôn tập & Kiểm tra</h2>
+        <p>Chọn môn, độ khó và số câu. Mỗi lần tạo là một bộ câu hỏi khác nhau, có giải thích đáp án sau khi nộp bài.</p>
       </div>
-    </div>
+      <div class="hero-art">📝</div>
+    </section>
 
-    <div class="card" style="max-width:640px;">
-      <div class="form-grid">
-        <div>
-          <label>Môn học</label>
-          <select id="courseSelect"></select>
+    <div class="quiz-layout">
+      <div class="card quiz-form">
+        <h3 style="margin:0 0 4px; font-size:20px;">Tạo bộ câu hỏi</h3>
+        <div style="color:var(--text-secondary); font-size:14px; margin-bottom:22px;">Điều chỉnh theo nhu cầu ôn tập của bạn.</div>
+        <div class="form-grid">
+          <div>
+            <label>Môn học</label>
+            <select id="courseSelect"></select>
+          </div>
+          <div>
+            <label>Số câu hỏi</label>
+            <select id="numQuestions"></select>
+          </div>
         </div>
-        <div>
-          <label>Số câu hỏi</label>
-          <select id="numQuestions"></select>
+        <div id="availInfo" class="avail"></div>
+        <div style="margin-top:18px;">
+          <label>Độ khó</label>
+          <div class="difficulty-options" id="diffOptions"></div>
         </div>
+        <button class="btn btn-primary gen-btn" onclick="generate()" id="genBtn">Tạo câu hỏi →</button>
+        <div id="errorMsg" style="color:var(--danger); font-size:13px; margin-top:10px; display:none;"></div>
       </div>
-      <div id="availInfo" style="margin-top:12px; font-size:13px; color:var(--text-secondary);"></div>
-      <div style="margin-top:14px;">
-        <label>Độ khó</label>
-        <div class="difficulty-options" id="diffOptions"></div>
-      </div>
-      <button class="btn btn-primary" style="margin-top:22px;" onclick="generate()" id="genBtn">Tạo câu hỏi</button>
-      <div id="errorMsg" style="color:var(--danger); font-size:13px; margin-top:10px; display:none;"></div>
-    </div>
 
-    <div class="card" style="max-width:640px; margin-top:20px;">
-      <h3 style="margin-top:0;">Kết quả gần đây</h3>
-      <div id="resultsList" style="font-size:14px; color:var(--text-secondary);"></div>
+      <div class="quiz-side">
+        <div class="card">
+          <h3 style="margin:0 0 12px; font-size:17px;">Kết quả gần đây</h3>
+          <div id="resultsList" style="font-size:14px; color:var(--text-secondary);"></div>
+        </div>
+        <div class="card tips">
+          <h3 style="margin:0 0 10px; font-size:17px;">Mẹo ôn tập</h3>
+          <ul>
+            <li>Làm 10 câu mỗi ngày hiệu quả hơn dồn một buổi.</li>
+            <li>Sai câu nào, bấm “Hỏi AI” để được giải thích câu đó.</li>
+            <li>Đọc lại tài liệu của chương trước khi làm lại bài.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </main>
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 let selectedDifficulty = "";
 let quizMeta = {};
 const DIFF_LABELS = { basic: "Cơ bản", medium: "Trung bình", advanced: "Nâng cao" };
@@ -133,9 +160,10 @@ async function init() {
   const list = document.getElementById("resultsList");
   list.innerHTML = results.length
     ? results.slice(0, 5).map(r => `
-        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle);">
-          <span>${r.course_name || "—"} (${DIFF_LABELS[r.difficulty] || "Hỗn hợp"})</span>
-          <span style="font-weight:600; color:var(--text-primary);">${r.score}/10</span>
+        <div class="res-row">
+          <span style="font-size:22px;">${courseTheme(r.course_name).icon}</span>
+          <span class="nm">${esc(r.course_name || "—")}<small>${DIFF_LABELS[r.difficulty] || "Hỗn hợp"}</small></span>
+          <span style="font-weight:800; color:${r.score >= 8 ? "#059669" : r.score >= 5 ? "#d97706" : "#e11d48"};">${r.score}/10</span>
         </div>`).join("")
     : "Bạn chưa có kết quả kiểm tra nào.";
 }

@@ -55,6 +55,28 @@ def root():
     return {"message": "EduAI API đang hoạt động", "docs": "/docs"}
 
 
+@app.get("/api/public/stats")
+def public_stats():
+    """Số liệu công khai cho trang giới thiệu (landing), không cần đăng nhập."""
+    import json
+    from .core.database import get_db
+    from ai_service import config as ai_config
+    with get_db() as db:
+        courses = [dict(r) for r in db.execute(
+            "SELECT c.code, c.name, c.description FROM courses c WHERE c.status='active' "
+            "ORDER BY (SELECT COUNT(*) FROM documents d WHERE d.course_id=c.id AND d.status='active') DESC, c.name").fetchall()]
+        documents = db.execute("SELECT COUNT(*) c FROM documents WHERE status='active'").fetchone()["c"]
+        questions = db.execute("SELECT COUNT(*) c FROM questions").fetchone()["c"]
+    try:
+        with open(ai_config.INTENTS_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        intents = len(data.get("intents", []))
+    except (OSError, ValueError):
+        intents = 0
+    return {"courses": len(courses), "course_list": courses, "documents": documents,
+            "questions": questions, "intents": intents}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

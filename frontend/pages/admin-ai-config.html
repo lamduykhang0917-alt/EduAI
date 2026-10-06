@@ -13,6 +13,13 @@
   .step-line .dot { width:8px; height:8px; border-radius:50%; background:var(--border-subtle); flex-shrink:0; }
   .step-line.done .dot { background:var(--success); }
   .step-line.active .dot { background:var(--indigo-500); }
+  .ai-layout { display:grid; grid-template-columns:1.5fr 1fr; gap:20px; align-items:start; }
+  @media (max-width:1000px) { .ai-layout { grid-template-columns:1fr; } }
+  .ai-layout .card { padding:28px; }
+  .config-row { font-size:15px !important; padding:14px 0 !important; gap:20px; }
+  .config-row strong { text-align:right; }
+  .flow { padding-left:20px; font-size:14px; line-height:1.9; color:var(--text-secondary); }
+  .flow b { color:var(--text-primary); }
   .empty-hint { text-align:center; padding:32px 16px; color:var(--text-muted); font-size:14px; }
 </style>
 </head>
@@ -20,7 +27,7 @@
 <div class="app-shell">
   <nav class="topnav">
   <div class="topnav-inner">
-    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI Admin</a>
+    <a class="topnav-logo" href="admin-dashboard.html"><span class="mark">E</span>EduAI Admin</a>
     <div class="topnav-links">
     <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
     <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
@@ -44,18 +51,16 @@
   </div>
 </nav>
   <main class="main-content">
-    <div class="topbar">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1>Cấu hình AI</h1>
-        <div class="sub">Trạng thái mô hình NLP và dataset</div>
-      </div>
-      <div>
-        <span class="badge badge-green" id="statusBadge"><span class="status-dot"></span>AI Status: Online</span>
-      </div>
-    </div>
+    <section class="page-hero" style="background:linear-gradient(120deg,#0f172a,#1d4ed8 65%,#0ea5e9 125%);">
+      <div class="copy"><h2>Cấu hình AI</h2><p>Trạng thái mô hình NLP và dataset</p>
+        <div class="hero-cta"><div>
+        <span class="badge badge-green" id="statusBadge" style="background:#fff;"><span class="status-dot"></span>AI Status: Online</span>
+      </div></div></div>
+      <div class="hero-art">🤖</div>
+    </section>
 
-    <div class="card" style="max-width:680px;">
+    <div class="ai-layout">
+    <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
           <h3 style="margin:0 0 4px;">Cấu hình hệ thống</h3>
@@ -80,20 +85,24 @@
       <div id="testResult" style="margin-top:14px; font-size:13px; color:var(--text-secondary); display:none;"></div>
     </div>
 
-    <div class="card" style="max-width:680px; margin-top:20px;">
-      <h3 style="margin-top:0;">Ghi chú tích hợp AI</h3>
-      <p style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
-        Chatbot hiện được cấu hình để gọi trực tiếp <strong>Claude</strong> hoặc <strong>Gemini</strong> nhằm
-        trả lời tự do bất kỳ câu hỏi nào của sinh viên, không giới hạn trong dataset nội bộ. Cần cấu hình
-        API key trong file <code>backend/.env</code> (sao chép từ <code>.env.example</code>). Nếu chưa có
-        key hoặc gọi API lỗi, hệ thống tự động dùng dữ liệu nội bộ (dataset) để trả lời tạm, không bị gián đoạn.
+    <div class="card">
+      <h3 style="margin-top:0;">Cách chatbot chọn nhà cung cấp AI</h3>
+      <ol class="flow">
+        <li><b>Claude</b> được thử đầu tiên (nếu có <code>ANTHROPIC_API_KEY</code>).</li>
+        <li>Lỗi hoặc quá tải thì chuyển sang <b>Gemini</b> (<code>GEMINI_API_KEY</code>).</li>
+        <li>Vẫn lỗi thì chuyển sang <b>Groq</b> (<code>GROQ_API_KEY</code>).</li>
+        <li>Không nhà cung cấp nào trả lời được thì dùng <b>tài liệu và kho kiến thức có sẵn</b> để trả lời tạm.</li>
+      </ol>
+      <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:0;">
+        Khóa API đặt trong biến môi trường của máy chủ (Render → Environment), không nhập trên trang này để tránh lộ khóa.
       </p>
+    </div>
     </div>
   </main>
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("ADMIN");
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -139,8 +148,8 @@ async function runConfigFlow() {
   await sleep(250);
   const warningHtml = (cfg.llm_provider !== "dataset" && !cfg.api_key_configured) ? `
     <div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:8px; padding:12px 14px; font-size:13px; margin-bottom:14px;">
-      ⚠️ Chưa cấu hình API key cho <strong>${cfg.llm_provider === 'claude' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'}</strong>.
-      Chatbot đang tự động dùng dữ liệu nội bộ (dataset) để trả lời tạm — xem hướng dẫn trong <code>backend/.env.example</code>.
+      ⚠️ Chưa có khóa API nào (ANTHROPIC_API_KEY, GEMINI_API_KEY hoặc GROQ_API_KEY).
+      Chatbot đang dùng tài liệu và kho kiến thức có sẵn để trả lời.
     </div>` : "";
   configRows.innerHTML = warningHtml + `
     <div class="config-row"><span>Nhà cung cấp AI</span><strong>${cfg.model}</strong></div>
@@ -167,6 +176,8 @@ async function testAi() {
     box.textContent = "❌ Lỗi khi kiểm tra AI: " + e.message;
   }
 }
+
+runConfigFlow();
 
 async function reloadModel() {
   const res = await Api.request("/api/admin/ai-config/reload", { method: "POST" });

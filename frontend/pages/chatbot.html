@@ -488,7 +488,7 @@
 <script src="../js/api.js"></script>
 <script src="../js/markdown.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 
 let sessions = [];
 let currentSessionId = null;

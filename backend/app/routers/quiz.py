@@ -1,7 +1,4 @@
-import json
-import os
 import random
-import sys
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,73 +7,45 @@ from pydantic import BaseModel
 from ..core.database import get_db
 from ..core.security import get_current_user
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-from ai_service import config as ai_config  # noqa: E402
-
 router = APIRouter(prefix="/api/quizzes", tags=["quizzes"])
 
 
-def _read_questions(path):
-    if not os.path.exists(path):
+def _db_questions(db, course=None, chapter=None, difficulty=None):
+    """Đọc câu hỏi từ database (nguồn chính, admin có thể thêm/sửa/xóa)."""
+    query = ("SELECT q.id, q.content, q.difficulty, q.explanation, c.name AS course, ch.name AS chapter "
+             "FROM questions q JOIN courses c ON c.id = q.course_id AND c.status = 'active' "
+             "LEFT JOIN chapters ch ON ch.id = q.chapter_id WHERE 1=1")
+    params = []
+    if course:
+        query += " AND c.name = ?"
+        params.append(course)
+    if chapter:
+        query += " AND ch.name = ?"
+        params.append(chapter)
+    if difficulty:
+        query += " AND q.difficulty = ?"
+        params.append(difficulty)
+    rows = [dict(r) for r in db.execute(query, params).fetchall()]
+    if not rows:
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f).get("questions", [])
-
-
-def _questions_from_knowledge():
-    """Sinh câu hỏi trắc nghiệm từ knowledge base: câu hỏi = trường "question",
-    đáp án đúng = "answer_basic", 3 đáp án nhiễu lấy từ các mục kiến thức khác.
-    Vị trí đáp án đúng được cố định theo id nên không đổi giữa các lần gọi."""
-    try:
-        with open(ai_config.KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
-            kb = json.load(f).get("knowledge_base", [])
-    except OSError:
-        return []
-
-    def short(text, limit=200):
-        text = " ".join(text.split())
-        return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "..."
-
+    ids = [r["id"] for r in rows]
+    options = {}
+    for a in db.execute(
+        f"SELECT question_id, option_key, option_text, is_correct FROM answers "
+        f"WHERE question_id IN ({','.join('?' * len(ids))}) ORDER BY option_key", ids
+    ).fetchall():
+        options.setdefault(a["question_id"], []).append(a)
     result = []
-    for idx, item in enumerate(kb):
-        if not item.get("question") or not item.get("answer_basic"):
-            continue
-        rng = random.Random(item["id"])
-        others = [o for o in kb if o["id"] != item["id"] and o.get("answer_basic")]
-        same_course = [o for o in others if o.get("course") == item.get("course")]
-        rng.shuffle(same_course)
-        rest = [o for o in others if o not in same_course]
-        rng.shuffle(rest)
-        distractors = [short(o["answer_basic"]) for o in (same_course + rest)[:3]]
-        if len(distractors) < 3:
-            continue
-        options = distractors
-        pos = rng.randrange(4)
-        options.insert(pos, short(item["answer_basic"]))
-        result.append({
-            "id": f"kbq_{item['id']}",
-            "course": item["course"],
-            "chapter": item.get("chapter", ""),
-            "difficulty": "basic",
-            "content": item["question"],
-            "options": dict(zip("ABCD", options)),
-            "correct_answer": "ABCD"[pos],
-            "explanation": short(item.get("answer_detailed") or item["answer_basic"], 320),
-        })
+    for r in rows:
+        opts = options.get(r["id"], [])
+        correct = next((o["option_key"] for o in opts if o["is_correct"]), None)
+        if len(opts) < 2 or correct is None:
+            continue  # câu hỏi chưa đủ đáp án thì không đưa vào bài kiểm tra
+        r["options"] = {o["option_key"]: o["option_text"] for o in opts}
+        r["correct_answer"] = correct
+        r["explanation"] = r["explanation"] or ""
+        result.append(r)
     return result
-
-
-_BANK_CACHE = None
-
-
-def _load_question_bank():
-    """Ngân hàng câu hỏi = quiz.json (gốc) + quiz_extra.json (bổ sung) + câu hỏi sinh từ knowledge base."""
-    global _BANK_CACHE
-    if _BANK_CACHE is None:
-        bank = _read_questions(ai_config.QUIZ_FILE) + _read_questions(ai_config.QUIZ_EXTRA_FILE)
-        bank += _questions_from_knowledge()
-        _BANK_CACHE = bank
-    return _BANK_CACHE
 
 
 class GenerateQuizRequest(BaseModel):
@@ -105,7 +74,9 @@ def list_quizzes(user: dict = Depends(get_current_user)):
 def quiz_meta(user: dict = Depends(get_current_user)):
     """Số câu hỏi có sẵn theo môn và độ khó, để giao diện chỉ cho chọn những gì thực sự có."""
     meta = {}
-    for q in _load_question_bank():
+    with get_db() as db:
+        bank = _db_questions(db)
+    for q in bank:
         m = meta.setdefault(q["course"], {"total": 0, "basic": 0, "medium": 0, "advanced": 0})
         m["total"] += 1
         if q["difficulty"] in m:
@@ -115,12 +86,8 @@ def quiz_meta(user: dict = Depends(get_current_user)):
 
 @router.post("/generate")
 def generate_quiz(payload: GenerateQuizRequest, user: dict = Depends(get_current_user)):
-    bank = _load_question_bank()
-    filtered = [q for q in bank if q["course"] == payload.course]
-    if payload.chapter:
-        filtered = [q for q in filtered if q["chapter"] == payload.chapter]
-    if payload.difficulty:
-        filtered = [q for q in filtered if q["difficulty"] == payload.difficulty]
+    with get_db() as db:
+        filtered = _db_questions(db, payload.course, payload.chapter, payload.difficulty)
 
     if not filtered:
         raise HTTPException(404, "Chưa có câu hỏi phù hợp cho lựa chọn này trong ngân hàng câu hỏi")
@@ -154,7 +121,10 @@ def generate_quiz(payload: GenerateQuizRequest, user: dict = Depends(get_current
 
 @router.post("/submit")
 def submit_quiz(payload: SubmitQuizRequest, user: dict = Depends(get_current_user)):
-    bank = {q["id"]: q for q in _load_question_bank()}
+    ids = [a.get("question_id") for a in payload.answers if isinstance(a.get("question_id"), int)]
+    with get_db() as db:
+        found = _db_questions(db)
+    bank = {q["id"]: q for q in found if q["id"] in ids}
     correct_count = 0
     detailed = []
 

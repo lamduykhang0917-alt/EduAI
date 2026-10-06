@@ -154,7 +154,7 @@ section { padding: 80px 0; }
 .course-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
 .course-chip .code { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-s); background: var(--surface-2); color: var(--accent); font-weight: 800; font-size: 12px; font-family: var(--font-display); display: flex; align-items: center; justify-content: center; }
 .course-chip .name { font-weight: 700; font-size: 14.5px; margin-bottom: 2px; }
-.course-chip .desc { font-size: 12.5px; color: var(--ink-faint); }
+.course-chip .desc { font-size: 12.5px; color: var(--ink-faint); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
 .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
 .step { position: relative; padding-top: 46px; }
@@ -253,14 +253,14 @@ footer a:hover { color: var(--navy-ink); }
     <div>
       <div class="eyebrow"><span class="dot"></span>Dành cho sinh viên ngành Khoa học máy tính</div>
       <h1>Trợ lý AI đồng hành<br>cùng bạn trong <span class="accent-text">học tập</span></h1>
-      <p class="lead">EduAI dùng PhoBERT để hiểu câu hỏi tiếng Việt, kết hợp dữ liệu môn học để hỏi đáp, giải thích khái niệm, tóm tắt tài liệu, tạo câu hỏi ôn tập và theo dõi tiến độ — cho Trí tuệ nhân tạo, Cơ sở dữ liệu, Cấu trúc dữ liệu & giải thuật và 6 môn khác.</p>
+      <p class="lead">EduAI dùng PhoBERT để hiểu câu hỏi tiếng Việt, kết hợp dữ liệu môn học để hỏi đáp, giải thích khái niệm, tóm tắt tài liệu, tạo câu hỏi ôn tập và theo dõi tiến độ — cho các môn của ngành Khoa học máy tính.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary btn-lg" href="pages/register.html">Dùng thử miễn phí →</a>
         <a class="btn btn-outline btn-lg" href="#courses">Xem môn học</a>
       </div>
       <div class="hero-stats">
-        <div><b>9</b><span>Môn học</span></div>
-        <div><b>12</b><span>Nhóm ý định AI</span></div>
+        <div><b id="statCourses">—</b><span>Môn học</span></div>
+        <div><b id="statIntents">—</b><span>Nhóm ý định AI</span></div>
         <div><b>24/7</b><span>Hỏi đáp tức thì</span></div>
       </div>
     </div>
@@ -318,19 +318,10 @@ footer a:hover { color: var(--navy-ink); }
   <div class="wrap">
     <div class="section-head">
       <div class="kicker">MÔN HỌC</div>
-      <h2>Đang hỗ trợ 9 môn học</h2>
+      <h2 id="coursesTitle">Các môn học được hỗ trợ</h2>
       <p>Dữ liệu tri thức được biên soạn theo giáo trình thực tế của từng môn.</p>
     </div>
-    <div class="course-chip-grid">
-      <div class="course-chip"><div class="code">AI</div><div><div class="name">Trí tuệ nhân tạo</div><div class="desc">Tìm kiếm, học máy, mạng nơ-ron</div></div></div>
-      <div class="course-chip"><div class="code">DB</div><div><div class="name">Cơ sở dữ liệu</div><div class="desc">Mô hình quan hệ, SQL, ràng buộc</div></div></div>
-      <div class="course-chip"><div class="code">DSA</div><div><div class="name">Cấu trúc dữ liệu & giải thuật</div><div class="desc">Sắp xếp, cây, đồ thị, bảng băm</div></div></div>
-      <div class="course-chip"><div class="code">PY</div><div><div class="name">Lập trình Python</div><div class="desc">Cú pháp, OOP, xử lý dữ liệu</div></div></div>
-      <div class="course-chip"><div class="code">SA</div><div><div class="name">Phân tích thiết kế hệ thống</div><div class="desc">Use case, sơ đồ lớp, yêu cầu</div></div></div>
-      <div class="course-chip"><div class="code">OOP</div><div><div class="name">Lập trình hướng đối tượng</div><div class="desc">Lớp, đối tượng, 4 tính chất OOP</div></div></div>
-      <div class="course-chip"><div class="code">HQT</div><div><div class="name">Hệ quản trị CSDL</div><div class="desc">Kiến trúc, khai thác, transaction</div></div></div>
-      <div class="course-chip"><div class="code">NET</div><div><div class="name">Lập trình .NET</div><div class="desc">ADO.NET, Windows Forms</div></div></div>
-      <div class="course-chip"><div class="code">TRR</div><div><div class="name">Toán rời rạc</div><div class="desc">Mệnh đề, Boole, tổ hợp, đồng dư</div></div></div>
+    <div class="course-chip-grid" id="courseGrid"><div class="course-chip"><div class="code">…</div><div><div class="name">Đang tải danh sách môn học...</div></div></div></div>
     </div>
   </div>
 </section>
@@ -391,5 +382,29 @@ footer a:hover { color: var(--navy-ink); }
   </div>
 </footer>
 
+<script>
+// Số liệu và danh sách môn lấy trực tiếp từ hệ thống, không ghi cứng.
+(function () {
+  const API = window.EDUAI_API_BASE || "https://eduai-backend-tdtx.onrender.com";
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  async function load() {
+    for (let i = 0; i < 3; i++) {
+      try {
+        const res = await fetch(API + "/api/public/stats");
+        if (!res.ok) throw new Error();
+        const d = await res.json();
+        document.getElementById("statCourses").textContent = d.courses;
+        document.getElementById("statIntents").textContent = d.intents || "—";
+        document.getElementById("coursesTitle").textContent = `Đang hỗ trợ ${d.courses} môn học`;
+        document.getElementById("courseGrid").innerHTML = d.course_list.map((c) =>
+          `<div class="course-chip"><div class="code">${esc((c.code || "").replace(/\d+$/, "") || "•")}</div><div><div class="name">${esc(c.name)}</div><div class="desc">${esc(c.description || "")}</div></div></div>`).join("");
+        return;
+      } catch (e) { await new Promise((r) => setTimeout(r, 3000)); }
+    }
+    document.getElementById("courseGrid").innerHTML = '<div class="course-chip"><div class="code">!</div><div><div class="name">Chưa tải được danh sách môn học</div><div class="desc">Máy chủ đang khởi động, hãy tải lại trang sau ít phút.</div></div></div>';
+  }
+  load();
+})();
+</script>
 </body>
 </html>

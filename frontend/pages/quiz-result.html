@@ -37,7 +37,7 @@
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 const result = JSON.parse(sessionStorage.getItem("eduai_last_result") || "null");
 if (!result) window.location.href = "quiz-list.html";
 

@@ -33,13 +33,10 @@
   </div>
 </nav>
   <main class="main-content">
-    <div class="topbar">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1>Tiến độ học tập</h1>
-        <div class="sub">Theo dõi quá trình học tập của bạn</div>
-      </div>
-    </div>
+    <section class="page-hero" style="background:linear-gradient(120deg,#064e3b 0%,#059669 60%,#2dd4bf 120%);">
+      <div class="copy"><h2>Tiến độ học tập</h2><p>Theo dõi điểm số, số bài đã làm và môn nào cần ôn thêm.</p></div>
+      <div class="hero-art">📈</div>
+    </section>
 
     <div class="grid grid-3" id="statCards" style="margin-bottom:20px;"></div>
 
@@ -61,7 +58,7 @@
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 async function load() {
   const [progress, results] = await Promise.all([Api.progress(), Api.results()]);
 

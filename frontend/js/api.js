@@ -108,6 +108,85 @@ function requireAuth() {
   }
 }
 
+function esc(v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ============================================================
+   Giao diện theo môn học: mỗi môn có biểu tượng + màu riêng để dễ nhận ra.
+   ============================================================ */
+const COURSE_THEMES = [
+  { key: /trí tuệ nhân tạo/i,            icon: "🤖", from: "#4f46e5", to: "#7c3aed" },
+  { key: /máy học/i,                      icon: "🧠", from: "#7c3aed", to: "#c026d3" },
+  { key: /ngôn ngữ tự nhiên/i,            icon: "💬", from: "#0891b2", to: "#2563eb" },
+  { key: /python/i,                       icon: "🐍", from: "#059669", to: "#0d9488" },
+  { key: /quản trị cơ sở dữ liệu/i,       icon: "🛡️", from: "#2563eb", to: "#1d4ed8" },
+  { key: /cơ sở dữ liệu/i,                icon: "🗄️", from: "#0284c7", to: "#2563eb" },
+  { key: /cấu trúc dữ liệu/i,             icon: "🌳", from: "#16a34a", to: "#65a30d" },
+  { key: /hướng đối tượng/i,              icon: "🧩", from: "#ea580c", to: "#f59e0b" },
+  { key: /\.net/i,                        icon: "🖥️", from: "#4338ca", to: "#2563eb" },
+  { key: /toán rời rạc/i,                 icon: "🔢", from: "#db2777", to: "#e11d48" },
+  { key: /phân tích thiết kế/i,           icon: "📐", from: "#d97706", to: "#ea580c" },
+  { key: /mạng máy tính/i,                icon: "🌐", from: "#0891b2", to: "#0d9488" },
+  { key: /đồ họa/i,                       icon: "🎨", from: "#c026d3", to: "#db2777" },
+  { key: /xử lý ảnh/i,                    icon: "🖼️", from: "#9333ea", to: "#6366f1" },
+  { key: /tương tác người máy/i,          icon: "👆", from: "#e11d48", to: "#f97316" },
+  { key: /điện toán đám mây/i,            icon: "☁️", from: "#0ea5e9", to: "#6366f1" },
+  { key: /kiến trúc máy tính/i,           icon: "🔧", from: "#475569", to: "#334155" },
+  { key: /kỹ thuật lập trình/i,           icon: "⌨️", from: "#0f766e", to: "#16a34a" },
+  { key: /nhập môn/i,                     icon: "🎓", from: "#2563eb", to: "#7c3aed" },
+];
+function courseTheme(name) {
+  const t = COURSE_THEMES.find((x) => x.key.test(name || ""));
+  return t || { icon: "📘", from: "#2563eb", to: "#4f46e5" };
+}
+function courseCover(name) {
+  const t = courseTheme(name);
+  return `background: linear-gradient(135deg, ${t.from}, ${t.to});`;
+}
+// Vòng tiến độ tròn (SVG), percent 0-100.
+function progressRing(percent, size = 64, color = "#2563eb") {
+  const r = (size - 8) / 2, c = 2 * Math.PI * r, pct = Math.max(0, Math.min(100, percent || 0));
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="6"/>
+    ${pct > 0 ? `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
+      stroke-dasharray="${(c * pct / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>` : ""}
+    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="${size * 0.24}" font-weight="800" fill="#0f172a">${Math.round(pct)}%</text></svg>`;
+}
+function greetingByTime() {
+  const h = new Date().getHours();
+  return h < 11 ? "Chào buổi sáng" : h < 14 ? "Chào buổi trưa" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+}
+
+// Đổi giờ UTC của server ("2026-10-06 13:35:06") sang giờ máy người dùng.
+function parseServerTime(s) {
+  if (!s) return null;
+  const d = new Date(String(s).replace(" ", "T") + (String(s).includes("Z") ? "" : "Z"));
+  return isNaN(d) ? null : d;
+}
+function formatServerTime(s) {
+  const d = parseServerTime(s);
+  if (!d) return s || "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// Đầu ngày theo giờ máy -> chuỗi UTC "YYYY-MM-DD HH:MM:SS" để gửi cho server.
+function toServerTime(date) {
+  return date.toISOString().slice(0, 19).replace("T", " ");
+}
+
+// Chặn sai vai trò: admin vào trang sinh viên (và ngược lại) thì chuyển về đúng trang của mình.
+async function requireRole(role) {
+  requireAuth();
+  try {
+    const me = await Api.me();
+    if (me && me.role !== role) {
+      window.location.href = me.role === "ADMIN" ? "admin-dashboard.html" : "dashboard.html";
+    }
+    return me;
+  } catch (e) { return null; }
+}
+
 function logout() {
   showConfirmModal({
     title: "Đăng xuất",
@@ -117,7 +196,7 @@ function logout() {
     onConfirm: () => {
       Api.request("/api/auth/logout", { method: "POST" }).finally(() => {
         Api.clearToken();
-        window.location.href = "login.html";
+        window.location.href = "../index.html";   // về trang giới thiệu (landing)
       });
     },
   });
@@ -172,7 +251,7 @@ function formatDate(isoDate) {
 
 async function initTopbarAvatar() {
   if (!Api.token()) return;
-  const host = document.querySelector(".topbar") || document.querySelector(".chat-header");
+  const host = document.querySelector(".topbar") || document.querySelector(".chat-header") || document.querySelector(".topnav-inner");
   if (!host || document.getElementById("eduai-avatar-btn")) return;
 
   let me;
@@ -317,3 +396,12 @@ function openProfileModal(user) {
 }
 
 document.addEventListener("DOMContentLoaded", initTopbarAvatar);
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inner = document.querySelector(".topnav-inner");
+  if (!inner || inner.querySelector(".nav-burger")) return;
+  const b = document.createElement("button");
+  b.className = "nav-burger"; b.setAttribute("aria-label", "Mở menu"); b.textContent = "☰";
+  b.onclick = toggleSidebar;
+  inner.appendChild(b);
+});

@@ -140,28 +140,99 @@ def import_content_pack(db) -> dict:
     return {"documents": n_docs, "chunks": n_chunks}
 
 
+def _flag(db, key) -> bool:
+    return db.execute("SELECT 1 FROM ai_configs WHERE key = ?", (key,)).fetchone() is not None
+
+
+def _set_flag(db, key):
+    db.execute("INSERT OR IGNORE INTO ai_configs (key, value) VALUES (?, '1')", (key,))
+
+
+def import_authored_documents(db) -> int:
+    """Tài liệu do EduAI biên soạn (dataset/authored_documents.json), ví dụ giáo trình Lập trình Python.
+    Chạy mỗi lần khởi động nhưng bỏ qua tài liệu đã có (trùng môn + tên)."""
+    path = os.path.join(ai_config.DATASET_DIR, "authored_documents.json")
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as f:
+        docs = json.load(f).get("documents", [])
+    added = 0
+    for d in docs:
+        course = db.execute("SELECT id FROM courses WHERE name = ?", (d["course"],)).fetchone()
+        if not course:
+            continue
+        if db.execute("SELECT 1 FROM documents WHERE course_id = ? AND title = ?", (course["id"], d["title"])).fetchone():
+            continue
+        chapter = db.execute("SELECT id FROM chapters WHERE course_id = ? AND name = ?", (course["id"], d["chapter"])).fetchone()
+        if chapter:
+            chapter_id = chapter["id"]
+        else:
+            order = db.execute("SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM chapters WHERE course_id = ?", (course["id"],)).fetchone()["n"]
+            chapter_id = db.execute("INSERT INTO chapters (course_id, name, order_index) VALUES (?, ?, ?)",
+                                    (course["id"], d["chapter"], order)).lastrowid
+        doc_id = db.execute(
+            "INSERT INTO documents (course_id, chapter_id, title, file_type, file_path, status) VALUES (?, ?, ?, ?, ?, 'active')",
+            (course["id"], chapter_id, d["title"], d["file_type"], d["file_path"]),
+        ).lastrowid
+        for idx, (page_hint, content) in enumerate(d["chunks"]):
+            db.execute(
+                "INSERT INTO document_chunks (document_id, content, chunk_index, vector_embedding, page_hint) VALUES (?, ?, ?, ?, ?)",
+                (doc_id, content, idx, json.dumps(_term_freq(content)), page_hint),
+            )
+        added += 1
+    return added
+
+
+def import_question_bank(db) -> int:
+    """Nạp ngân hàng câu hỏi từ dataset vào database đúng một lần (sau đó admin tự quản lý trong database)."""
+    if _flag(db, "question_bank_imported"):
+        return 0
+    from ai_service.question_bank import load_all_questions
+    n = 0
+    for q in load_all_questions():
+        course = db.execute("SELECT id FROM courses WHERE name = ?", (q["course"],)).fetchone()
+        if not course:
+            continue
+        chapter = db.execute("SELECT id FROM chapters WHERE course_id = ? AND name = ?", (course["id"], q.get("chapter"))).fetchone()
+        qid = db.execute(
+            "INSERT INTO questions (course_id, chapter_id, content, difficulty, explanation) VALUES (?, ?, ?, ?, ?)",
+            (course["id"], chapter["id"] if chapter else None, q["content"], q["difficulty"], q.get("explanation", "")),
+        ).lastrowid
+        for key, text in q["options"].items():
+            db.execute(
+                "INSERT INTO answers (question_id, option_key, option_text, is_correct) VALUES (?, ?, ?, ?)",
+                (qid, key, text, 1 if key == q["correct_answer"] else 0),
+            )
+        n += 1
+    _set_flag(db, "question_bank_imported")
+    return n
+
+
 def run():
     init_db()
     admin_password = os.environ.get("EDUAI_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
     student_password = os.environ.get("EDUAI_DEMO_STUDENT_PASSWORD") or secrets.token_urlsafe(12)
     with get_db() as db:
         existing_admin = db.execute("SELECT id FROM users WHERE email = ?", ("admin@eduai.vn",)).fetchone()
-        if not existing_admin:
+        # Đã có admin tức là database cũ: coi như đã seed demo, KHÔNG tạo lại sinh viên demo
+        # (nếu không, tài khoản admin vừa xóa sẽ xuất hiện lại sau mỗi lần server khởi động).
+        fresh_database = existing_admin is None
+        if fresh_database:
             db.execute(
                 "INSERT INTO users (full_name, email, password_hash, role_id) VALUES (?, ?, ?, "
                 "(SELECT id FROM roles WHERE name='ADMIN'))",
                 ("Quản trị viên", "admin@eduai.vn", hash_password(admin_password)),
             )
-
-        for name, email, dob, gender, major, code, phone, address in STUDENTS:
-            existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-            if not existing:
-                db.execute(
-                    "INSERT INTO users (full_name, email, password_hash, role_id, "
-                    "date_of_birth, gender, major, student_code, phone, address) VALUES "
-                    "(?, ?, ?, (SELECT id FROM roles WHERE name='STUDENT'), ?, ?, ?, ?, ?, ?)",
-                    (name, email, hash_password(student_password), dob, gender, major, code, phone, address),
-                )
+        if fresh_database and not _flag(db, "demo_users_seeded"):
+            for name, email, dob, gender, major, code, phone, address in STUDENTS:
+                if not db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
+                    db.execute(
+                        "INSERT INTO users (full_name, email, password_hash, role_id, "
+                        "date_of_birth, gender, major, student_code, phone, address) VALUES "
+                        "(?, ?, ?, (SELECT id FROM roles WHERE name='STUDENT'), ?, ?, ?, ?, ?, ?)",
+                        (name, email, hash_password(student_password), dob, gender, major, code, phone, address),
+                    )
+        _set_flag(db, "demo_users_seeded")
 
         course_ids = {}
         chapter_ids = {}
@@ -212,7 +283,10 @@ def run():
                     (course_id, chapter_id, title, file_type, ""),
                 )
 
-        student = db.execute("SELECT id FROM users WHERE email=?", (STUDENTS[0][1],)).fetchone()
+        print(f"Tài liệu biên soạn thêm: {import_authored_documents(db)}")
+        print(f"Câu hỏi nạp vào database: {import_question_bank(db)}")
+
+        student = db.execute("SELECT id FROM users WHERE email=?", (STUDENTS[0][1],)).fetchone() if fresh_database else None
         progress_demo = [
             ("Trí tuệ nhân tạo", 75),
             ("Cơ sở dữ liệu", 62),
@@ -237,9 +311,9 @@ def run():
                     )
 
     print("Seed dữ liệu demo hoàn tất.")
-    if not os.environ.get("EDUAI_ADMIN_PASSWORD"):
+    if fresh_database and not os.environ.get("EDUAI_ADMIN_PASSWORD"):
         print(f"Admin: admin@eduai.vn / {admin_password}  (mật khẩu ngẫu nhiên, chỉ hiện lần này)")
-    if not os.environ.get("EDUAI_DEMO_STUDENT_PASSWORD"):
+    if fresh_database and not os.environ.get("EDUAI_DEMO_STUDENT_PASSWORD"):
         print(f"Sinh viên demo: an.nguyen@student.edu.vn / {student_password}")
 
 

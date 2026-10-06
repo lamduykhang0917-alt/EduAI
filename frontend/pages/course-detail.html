@@ -52,14 +52,15 @@
   </div>
 </nav>
   <main class="main-content">
-    <div class="topbar">
-      <div>
-        <a href="courses.html" style="font-size:13px; color:var(--text-secondary);">← Quay lại Môn học</a>
-        <h1 id="courseTitle">Đang tải...</h1>
-        <div class="sub" id="courseDesc"></div>
+    <a href="courses.html" style="font-size:13px; color:var(--text-secondary); display:inline-block; margin-bottom:10px;">← Quay lại Môn học</a>
+    <section class="page-hero" id="courseHero">
+      <div class="copy">
+        <h2 id="courseTitle">Đang tải...</h2>
+        <p id="courseDesc"></p>
+        <div class="hero-cta"><button class="solid" id="askAiBtn">💬 Hỏi AI về môn học này</button></div>
       </div>
-      <button class="btn btn-primary" id="askAiBtn">💬 Hỏi AI về môn học này</button>
-    </div>
+      <div class="hero-art" id="courseIcon">📘</div>
+    </section>
 
     <div class="grid two-col" style="grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
       <div class="card">
@@ -75,7 +76,7 @@
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 const id = new URLSearchParams(window.location.search).get("id");
 
 function esc(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -106,6 +107,8 @@ async function load() {
   courseName = data.course.name;
   document.getElementById("courseTitle").textContent = courseName;
   document.getElementById("courseDesc").textContent = data.course.description || "";
+  document.getElementById("courseHero").style.cssText = courseCover(courseName);
+  document.getElementById("courseIcon").textContent = courseTheme(courseName).icon;
   document.getElementById("askAiBtn").onclick = () => {
     window.location.href = `chatbot.html?course=${encodeURIComponent(courseName)}`;
   };

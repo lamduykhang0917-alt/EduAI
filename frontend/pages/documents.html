@@ -129,13 +129,10 @@
 </nav>
 
   <main class="main-content">
-    <div class="topbar animate-fade-in">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1>Tài liệu 📄</h1>
-        <div class="sub">Tìm kiếm và xem tài liệu học tập</div>
-      </div>
-    </div>
+    <section class="page-hero" style="background:linear-gradient(120deg,#7c2d12 0%,#ea580c 60%,#f59e0b 120%);">
+      <div class="copy"><h2>Thư viện tài liệu</h2><p>Đọc nội dung từng trang ngay trên web, tìm kiếm trong tài liệu hoặc hỏi AI về phần bạn chưa hiểu.</p></div>
+      <div class="hero-art">📄</div>
+    </section>
 
     <div class="card animate-fade-in-up">
       <div class="filters">
@@ -170,7 +167,7 @@
 
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 let courses = [];
 
 function getDocIcon(type) {

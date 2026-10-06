@@ -19,14 +19,15 @@
   .option-key-label { width:20px; font-weight:600; flex-shrink:0; }
   .grid-2col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .filters { display:flex; gap:10px; margin-bottom:16px; }
-  .filters input, .filters select { max-width:240px; }
+  .filters input, .filters select { max-width:260px; }
+  .filters { flex-wrap:wrap; }
 </style>
 </head>
 <body>
 <div class="app-shell">
   <nav class="topnav">
   <div class="topnav-inner">
-    <a class="topnav-logo" href="dashboard.html"><span class="mark">E</span>EduAI Admin</a>
+    <a class="topnav-logo" href="admin-dashboard.html"><span class="mark">E</span>EduAI Admin</a>
     <div class="topnav-links">
     <a class="nav-item" href="admin-dashboard.html">📊 Dashboard</a>
     <a class="nav-item" href="admin-users.html">👥 Tài khoản</a>
@@ -50,21 +51,20 @@
   </div>
 </nav>
   <main class="main-content">
-    <div class="topbar">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1>Ngân hàng câu hỏi</h1>
-        <div class="sub">Thêm, sửa, xóa câu hỏi trắc nghiệm dùng cho chức năng ôn tập</div>
-      </div>
-      <button class="btn btn-primary" onclick="openAddModal()">+ Thêm câu hỏi</button>
-    </div>
+    <section class="page-hero" style="background:linear-gradient(120deg,#581c87,#9333ea 65%,#db2777 125%);">
+      <div class="copy"><h2>Ngân hàng câu hỏi</h2><p>Thêm, sửa, xóa câu hỏi trắc nghiệm dùng cho chức năng ôn tập</p>
+        <div class="hero-cta"><button class="solid" onclick="openAddModal()">+ Thêm câu hỏi</button></div></div>
+      <div class="hero-art">❓</div>
+    </section>
     <div class="card">
       <div class="filters">
-        <input placeholder="Tìm kiếm nội dung câu hỏi..." id="searchInput" oninput="load()">
-        <select id="courseFilter" onchange="load()"><option value="">Tất cả môn học</option></select>
+        <input placeholder="Tìm kiếm nội dung câu hỏi..." id="searchInput" oninput="load()" autocomplete="off">
+        <select id="courseFilter" onchange="load()" autocomplete="off"><option value="">Tất cả môn học</option></select>
+        <select id="diffFilter" onchange="load()" autocomplete="off"><option value="">Mọi độ khó</option><option value="basic">Cơ bản</option><option value="medium">Trung bình</option><option value="advanced">Nâng cao</option></select>
+        <span id="qCount" style="align-self:center; color:var(--text-secondary); font-size:13px;"></span>
       </div>
       <table>
-        <thead><tr><th>Nội dung câu hỏi</th><th>Độ khó</th><th>Đáp án đúng</th><th></th></tr></thead>
+        <thead><tr><th>Nội dung câu hỏi</th><th>Môn học</th><th>Độ khó</th><th>Đáp án đúng</th><th></th></tr></thead>
         <tbody id="qRows"></tbody>
       </table>
       <div id="emptyMsg" style="display:none; text-align:center; padding:24px; color:var(--text-muted);">
@@ -128,7 +128,7 @@
 
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("ADMIN");
 let editingQuestionId = null;
 let allCourses = [];
 let allChapters = [];
@@ -162,7 +162,10 @@ async function load() {
   if (courseId) params.set("course_id", courseId);
   const qs = params.toString() ? `?${params.toString()}` : "";
 
-  const questions = await Api.request(`/api/admin/questions${qs}`);
+  let questions = await Api.request(`/api/admin/questions${qs}`);
+  const diff = document.getElementById("diffFilter").value;
+  if (diff) questions = questions.filter(q => q.difficulty === diff);
+  document.getElementById("qCount").textContent = `${questions.length} câu hỏi`;
   const tbody = document.getElementById("qRows");
   const emptyMsg = document.getElementById("emptyMsg");
   const diffLabel = { basic: "Cơ bản", medium: "Trung bình", advanced: "Nâng cao" };
@@ -175,7 +178,8 @@ async function load() {
   emptyMsg.style.display = "none";
   tbody.innerHTML = questions.map(q => `
     <tr>
-      <td>${q.content}</td>
+      <td>${esc(q.content)}</td>
+      <td style="white-space:nowrap;">${esc(q.course_name || "—")}</td>
       <td><span class="badge badge-blue">${diffLabel[q.difficulty] || q.difficulty}</span></td>
       <td><span class="badge badge-green">${q.correct_option || "—"}</span></td>
       <td>

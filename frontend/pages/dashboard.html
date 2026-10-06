@@ -203,45 +203,43 @@
 </nav>
 
   <main class="main-content">
-    <div class="topbar animate-fade-in">
-      <div>
-        <button class="btn btn-secondary hamburger-btn" onclick="toggleSidebar()">☰</button>
-        <h1 id="greeting">Chào mừng trở lại 👋</h1>
-        <div class="sub">Đây là tổng quan việc học của bạn hôm nay.</div>
+    <section class="page-hero">
+      <div class="copy">
+        <h2 id="bannerGreeting">Hôm nay bạn muốn học gì?</h2>
+        <p id="bannerSub">Hỏi AI, đọc tài liệu hoặc làm vài câu ôn tập. Mỗi ngày một chút là đủ.</p>
+        <div class="hero-cta">
+          <a class="solid" href="chatbot.html">💬 Hỏi AI ngay</a>
+          <a class="ghost" href="quiz-list.html">📝 Làm bài ôn tập</a>
+        </div>
       </div>
+      <div class="hero-art">🎓</div>
+    </section>
+
+    <div class="grid grid-4" id="statCards" style="margin-bottom:24px;"></div>
+
+    <div class="tile-grid">
+      <a class="tile" href="courses.html"><span class="ti" style="background:#eff6ff;">📚</span><div><b>Môn học</b><small>Chương và tài liệu</small></div></a>
+      <a class="tile" href="documents.html"><span class="ti" style="background:#fffbeb;">📄</span><div><b>Tài liệu</b><small>Đọc ngay trên web</small></div></a>
+      <a class="tile" href="chatbot.html"><span class="ti" style="background:#f5f3ff;">💬</span><div><b>Hỏi AI</b><small>Giải thích, tóm tắt</small></div></a>
+      <a class="tile" href="progress.html"><span class="ti" style="background:#ecfdf5;">📈</span><div><b>Tiến độ</b><small>Điểm và kết quả</small></div></a>
     </div>
 
-    <!-- Welcome Banner -->
-    <div class="welcome-banner animate-fade-in-up">
-      <h2 id="bannerGreeting">Hôm nay bạn muốn học gì? 🎯</h2>
-      <p>Tiếp tục học tập để đạt mục tiêu của bạn. Trợ lý AI luôn sẵn sàng hỗ trợ!</p>
-      <div class="banner-actions">
-        <a href="chatbot.html" class="btn-white">💬 Hỏi AI ngay</a>
-        <a href="courses.html" class="btn-white-ghost">📚 Xem môn học</a>
-      </div>
-    </div>
+    <h3 class="section-title" style="font-size:19px;">Tiếp tục học</h3>
+    <div class="grid grid-3" id="continueGrid" style="margin-bottom:26px;"></div>
 
-    <!-- Stat Cards -->
-    <div class="stat-grid" id="statCards"></div>
-
-    <!-- Progress + Recommendations -->
-    <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px;">
-      <div class="card animate-fade-in-up delay-2">
+    <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px;" id="lowerGrid">
+      <div class="card">
         <h3 class="section-title">📈 Tiến độ theo môn</h3>
         <div id="progressList" style="display:flex; flex-direction:column; gap:16px;"></div>
       </div>
-
-      <div class="card animate-fade-in-up delay-3">
+      <div class="card">
         <h3 class="section-title">💡 Đề xuất học tập</h3>
         <div id="recommendationBox"></div>
-        <a href="chatbot.html" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;">
-          Hỏi AI ngay →
-        </a>
+        <a href="chatbot.html" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;">Hỏi AI ngay →</a>
       </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="card animate-fade-in-up delay-4">
+    <div class="card">
       <h3 class="section-title">🕐 Hoạt động gần đây</h3>
       <div id="activityList"></div>
     </div>
@@ -250,82 +248,71 @@
 
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 
 async function load() {
   try {
     const me = await Api.me();
     const name = me.full_name.split(" ").pop();
-    document.getElementById("greeting").textContent = `Chào ${name} 👋`;
-    document.getElementById("bannerGreeting").textContent = `Hôm nay bạn muốn học gì, ${name}? 🎯`;
+    document.getElementById("bannerGreeting").textContent = `${greetingByTime()}, ${name}! Hôm nay học gì nào?`;
 
-    const [progress, courses, recs] = await Promise.all([
-      Api.progress(), Api.courses(), Api.recommendations()
-    ]);
-
-    const iconMap = { 0: { bg: '#eff6ff', ic: '📚' }, 1: { bg: '#f0fdf4', ic: '📝' }, 2: { bg: '#fffbeb', ic: '⭐' }, 3: { bg: '#f5f3ff', ic: '🔥' } };
-    const statCards = document.getElementById("statCards");
-    const topCourse = progress.by_course.length
-      ? progress.by_course.sort((a,b) => b.percent_complete - a.percent_complete)[0].course_name
-      : "—";
+    const [progress, courses, recs] = await Promise.all([Api.progress(), Api.courses(), Api.recommendations()]);
+    const byCourse = Object.fromEntries(progress.by_course.map(p => [p.course_name, p.percent_complete]));
 
     const stats = [
-      { label: 'Môn học đang học', value: courses.length, icon: '📚', bg: '#eff6ff' },
-      { label: 'Bài kiểm tra hoàn thành', value: progress.total_quizzes_completed, icon: '📝', bg: '#f0fdf4' },
-      { label: 'Điểm trung bình', value: `${progress.average_score}/10`, icon: '⭐', bg: '#fffbeb' },
-      { label: 'Môn tiến độ cao nhất', value: topCourse, icon: '🔥', bg: '#f5f3ff', small: true }
+      { cap: "Môn học", num: courses.length, ic: "📚", from: "#2563eb", to: "#4f46e5" },
+      { cap: "Bài kiểm tra đã làm", num: progress.total_quizzes_completed, ic: "📝", from: "#059669", to: "#0d9488" },
+      { cap: "Điểm trung bình", num: `${progress.average_score}/10`, ic: "⭐", from: "#f59e0b", to: "#ea580c" },
+      { cap: "Tài liệu có thể đọc", num: courses.reduce((n, c) => n + c.document_count, 0), ic: "📄", from: "#9333ea", to: "#db2777" },
     ];
+    document.getElementById("statCards").innerHTML = stats.map(s => `
+      <div class="stat-tile" style="background:linear-gradient(135deg, ${s.from}, ${s.to});">
+        <div class="ic">${s.ic}</div><div class="num">${s.num}</div><div class="cap">${s.cap}</div>
+      </div>`).join("");
 
-    statCards.innerHTML = stats.map((s, i) => `
-      <div class="stat-card animate-fade-in-up" style="animation-delay: ${0.1 + i * 0.07}s">
-        <div class="icon" style="background:${s.bg};">${s.icon}</div>
-        <div class="label">${s.label}</div>
-        <div class="value" style="${s.small ? 'font-size:15px;font-weight:700;' : ''}">${s.value}</div>
-      </div>`).join('');
+    // Gợi ý "Tiếp tục học": môn đang học dở trước, nếu chưa có thì các môn có nhiều tài liệu nhất.
+    const ranked = [...courses].sort((a, b) => (b.progress - a.progress) || (b.document_count - a.document_count));
+    const picks = ranked.filter(c => c.document_count > 0).slice(0, 3);
+    document.getElementById("continueGrid").innerHTML = picks.map(c => {
+      const th = courseTheme(c.name);
+      return `<a class="c-card" href="course-detail.html?id=${c.id}">
+        <div class="c-cover" style="${courseCover(c.name)}"><span class="c-icon">${th.icon}</span><span class="c-code">${esc(c.code)}</span></div>
+        <div class="c-body"><h3>${esc(c.name)}</h3>
+          <div class="c-chips"><span class="c-chip">📖 ${c.chapter_count} chương</span><span class="c-chip on">📄 ${c.document_count} tài liệu</span></div></div>
+        <div class="c-foot"><span class="c-go">Vào học →</span>${progressRing(c.progress, 46, th.from)}</div></a>`;
+    }).join("") || '<div class="card" style="grid-column:1/-1; color:var(--text-muted);">Chưa có môn học nào.</div>';
 
     const progressList = document.getElementById("progressList");
-    if (progress.by_course.length === 0) {
-      progressList.innerHTML = `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có dữ liệu. Hãy bắt đầu học!</div>`;
-    } else {
-      progressList.innerHTML = progress.by_course.map(p => `
+    const rows = progress.by_course.filter(p => p.percent_complete > 0);
+    progressList.innerHTML = rows.length ? rows.map(p => `
         <div class="progress-item">
-          <div class="progress-header">
-            <span class="name">${p.course_name}</span>
-            <span class="pct">${Math.round(p.percent_complete)}%</span>
-          </div>
+          <div class="progress-header"><span class="name">${esc(p.course_name)}</span><span class="pct">${Math.round(p.percent_complete)}%</span></div>
           <div class="progress-track"><div class="progress-fill" style="width:${p.percent_complete}%;"></div></div>
-        </div>`).join('');
-    }
+        </div>`).join("")
+      : `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có tiến độ. Làm một bài ôn tập để bắt đầu.<br><a href="quiz-list.html" style="color:var(--indigo-600); font-weight:600;">Làm bài ôn tập →</a></div>`;
 
     const recBox = document.getElementById("recommendationBox");
     recBox.innerHTML = recs.length
-      ? recs.map(r => `<div class="rec-item"><span class="rec-icon">💡</span><span>${r.content}</span></div>`).join('')
+      ? recs.map(r => `<div class="rec-item"><span class="rec-icon">💡</span><span>${esc(r.content)}</span></div>`).join('')
       : `<div style="font-size:14px;color:var(--text-muted);">Chưa có đề xuất. Hãy học thêm để nhận gợi ý!</div>`;
 
     const activity = await Api.recentActivity();
     const activityList = document.getElementById("activityList");
     const ACTION_META = {
-      ask_ai: { icon: "💬", bg: "#eef2ff", label: d => `Đã hỏi AI: "${d}"` },
+      ask_ai: { icon: "💬", bg: "#eef2ff", label: d => `Đã hỏi AI: "${esc(d)}"` },
       submit_quiz: { icon: "✅", bg: "#f0fdf4", label: () => "Đã hoàn thành một bài kiểm tra" },
-      view_document: { icon: "📄", bg: "#fffbeb", label: d => `Đã xem tài liệu: ${d}` },
+      view_document: { icon: "📄", bg: "#fffbeb", label: d => `Đã xem tài liệu: ${esc(d)}` },
       update_profile: { icon: "🧑", bg: "#f5f3ff", label: () => "Đã cập nhật hồ sơ cá nhân" },
     };
-    if (activity.length === 0) {
-      activityList.innerHTML = `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có hoạt động nào. Hãy bắt đầu học tập!</div>`;
-    } else {
-      activityList.innerHTML = activity.map((a, i) => {
-        const meta = ACTION_META[a.action] || { icon: "🔔", bg: "#f3f4f6", label: () => a.action };
+    activityList.innerHTML = activity.length ? activity.map((a, i) => {
+        const meta = ACTION_META[a.action] || { icon: "🔔", bg: "#f3f4f6", label: () => esc(a.action) };
         return `
       <div class="activity-item" style="animation-delay:${i * 0.08}s">
         <div class="activity-dot" style="background:${meta.bg};">${meta.icon}</div>
-        <div class="activity-text">
-          <span>${meta.label(a.detail)}</span>
-          <small>${a.created_at}</small>
-        </div>
+        <div class="activity-text"><span>${meta.label(a.detail)}</span><small>${formatServerTime(a.created_at)}</small></div>
       </div>`;
-      }).join('');
-    }
-
+      }).join('')
+      : `<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px;">Chưa có hoạt động nào. Hãy bắt đầu học tập!</div>`;
   } catch (err) { console.error(err); }
 }
 load();

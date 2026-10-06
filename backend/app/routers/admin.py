@@ -1,9 +1,16 @@
+import json
+import os
+import sys
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ..core.database import get_db
+from ..core.extract import ExtractError, extract_chunks
 from ..core.security import require_admin, hash_password
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from ai_service.rag import _term_freq  # noqa: E402
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -16,9 +23,9 @@ def admin_dashboard(admin: dict = Depends(require_admin)):
         stats["total_students"] = db.execute(
             "SELECT COUNT(*) c FROM users u JOIN roles r ON u.role_id=r.id WHERE r.name='STUDENT'"
         ).fetchone()["c"]
-        stats["total_courses"] = db.execute("SELECT COUNT(*) c FROM courses").fetchone()["c"]
+        stats["total_courses"] = db.execute("SELECT COUNT(*) c FROM courses WHERE status = 'active'").fetchone()["c"]
         stats["total_chapters"] = db.execute("SELECT COUNT(*) c FROM chapters").fetchone()["c"]
-        stats["total_documents"] = db.execute("SELECT COUNT(*) c FROM documents").fetchone()["c"]
+        stats["total_documents"] = db.execute("SELECT COUNT(*) c FROM documents WHERE status = 'active'").fetchone()["c"]
         stats["total_questions"] = db.execute("SELECT COUNT(*) c FROM questions").fetchone()["c"]
         stats["total_ai_queries"] = db.execute(
             "SELECT COUNT(*) c FROM activity_logs WHERE action='ask_ai'"
@@ -147,18 +154,35 @@ def admin_list_courses(search: Optional[str] = None, admin: dict = Depends(requi
     if search:
         query += " AND (name LIKE ? OR code LIKE ?)"
         params += [f"%{search}%", f"%{search}%"]
-    query += " ORDER BY id DESC"
+    query += " ORDER BY name"
     with get_db() as db:
-        return [dict(r) for r in db.execute(query, params).fetchall()]
+        rows = []
+        for r in db.execute(query, params).fetchall():
+            item = dict(r)
+            item["chapter_count"] = db.execute("SELECT COUNT(*) c FROM chapters WHERE course_id=?", (r["id"],)).fetchone()["c"]
+            item["document_count"] = db.execute(
+                "SELECT COUNT(*) c FROM documents WHERE course_id=? AND status='active'", (r["id"],)).fetchone()["c"]
+            item["question_count"] = db.execute("SELECT COUNT(*) c FROM questions WHERE course_id=?", (r["id"],)).fetchone()["c"]
+            rows.append(item)
+        return rows
 
 
 @router.get("/courses/{course_id}")
 def admin_get_course(course_id: int, admin: dict = Depends(require_admin)):
+    """Chi tiết môn: thông tin, các chương và tài liệu (kèm số đoạn nội dung đã đọc được)."""
     with get_db() as db:
         row = db.execute("SELECT * FROM courses WHERE id=?", (course_id,)).fetchone()
         if row is None:
             raise HTTPException(404, "Không tìm thấy môn học")
-        return dict(row)
+        chapters = [dict(c) for c in db.execute(
+            "SELECT * FROM chapters WHERE course_id=? ORDER BY order_index, id", (course_id,)).fetchall()]
+        documents = [dict(d) for d in db.execute(
+            "SELECT d.*, (SELECT COUNT(*) FROM document_chunks dc WHERE dc.document_id = d.id) AS chunk_count "
+            "FROM documents d WHERE d.course_id=? AND d.status='active' ORDER BY d.id", (course_id,)).fetchall()]
+        result = dict(row)
+        result["chapters"] = chapters
+        result["documents"] = documents
+        return result
 
 
 @router.post("/courses")
@@ -228,6 +252,8 @@ def create_chapter(payload: ChapterRequest, admin: dict = Depends(require_admin)
 @router.delete("/chapters/{chapter_id}")
 def delete_chapter(chapter_id: int, admin: dict = Depends(require_admin)):
     with get_db() as db:
+        db.execute("UPDATE documents SET chapter_id = NULL WHERE chapter_id = ?", (chapter_id,))
+        db.execute("UPDATE questions SET chapter_id = NULL WHERE chapter_id = ?", (chapter_id,))
         db.execute("DELETE FROM chapters WHERE id=?", (chapter_id,))
     return {"message": "Đã xóa chương"}
 
@@ -261,8 +287,42 @@ def create_document(payload: DocumentRequest, admin: dict = Depends(require_admi
 @router.delete("/documents/{document_id}")
 def delete_document(document_id: int, admin: dict = Depends(require_admin)):
     with get_db() as db:
+        db.execute("DELETE FROM document_chunks WHERE document_id=?", (document_id,))
         db.execute("DELETE FROM documents WHERE id=?", (document_id,))
     return {"message": "Đã xóa tài liệu"}
+
+
+@router.post("/courses/{course_id}/documents")
+async def upload_document(course_id: int, file: UploadFile = File(...), chapter_id: Optional[int] = Form(None),
+                          admin: dict = Depends(require_admin)):
+    """Tải lên tài liệu PDF/DOCX/TXT: đọc chữ trong tệp, chia đoạn và đưa vào kho tri thức của chatbot."""
+    data = await file.read()
+    filename = os.path.basename(file.filename or "tai-lieu")
+    try:
+        file_type, chunks = extract_chunks(filename, data)
+    except ExtractError as exc:
+        raise HTTPException(400, f"{filename}: {exc}")
+    with get_db() as db:
+        if db.execute("SELECT 1 FROM courses WHERE id=?", (course_id,)).fetchone() is None:
+            raise HTTPException(404, "Không tìm thấy môn học")
+        if chapter_id and db.execute("SELECT 1 FROM chapters WHERE id=? AND course_id=?", (chapter_id, course_id)).fetchone() is None:
+            raise HTTPException(400, "Chương không thuộc môn học này")
+        if db.execute("SELECT 1 FROM documents WHERE course_id=? AND title=? AND status='active'", (course_id, filename)).fetchone():
+            raise HTTPException(400, f"{filename}: môn học này đã có tài liệu cùng tên")
+        doc_id = db.execute(
+            "INSERT INTO documents (course_id, chapter_id, title, file_type, file_path, status) "
+            "VALUES (?, ?, ?, ?, ?, 'active')",
+            (course_id, chapter_id, filename, file_type, f"upload/{course_id}/{filename}"),
+        ).lastrowid
+        for idx, (page_no, text) in enumerate(chunks):
+            db.execute(
+                "INSERT INTO document_chunks (document_id, content, chunk_index, vector_embedding, page_hint) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (doc_id, text, idx, json.dumps(_term_freq(text)), f"upload:{filename}:p{page_no}"),
+            )
+        db.execute("INSERT INTO activity_logs (user_id, action, detail) VALUES (?, 'upload_document', ?)",
+                   (admin["id"], filename))
+    return {"id": doc_id, "title": filename, "file_type": file_type, "chunk_count": len(chunks)}
 
 
 # ---------- 27. Quản lý ngân hàng câu hỏi ----------
@@ -284,18 +344,19 @@ def _attach_answers(db, questions):
 @router.get("/questions")
 def admin_list_questions(search: Optional[str] = None, course_id: Optional[int] = None,
                           admin: dict = Depends(require_admin)):
-    query = "SELECT * FROM questions"
+    query = ("SELECT q.*, c.name AS course_name FROM questions q "
+             "LEFT JOIN courses c ON c.id = q.course_id")
     conditions = []
     params = []
     if search:
-        conditions.append("content LIKE ?")
+        conditions.append("q.content LIKE ?")
         params.append(f"%{search}%")
     if course_id:
-        conditions.append("course_id = ?")
+        conditions.append("q.course_id = ?")
         params.append(course_id)
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
-    query += " ORDER BY id DESC"
+    query += " ORDER BY q.id DESC"
     with get_db() as db:
         rows = db.execute(query, params).fetchall()
         return _attach_answers(db, rows)
@@ -367,16 +428,52 @@ def delete_question(question_id: int, admin: dict = Depends(require_admin)):
 
 # ---------- 28. Theo dõi hoạt động ----------
 @router.get("/logs")
-def get_logs(action: Optional[str] = None, admin: dict = Depends(require_admin)):
+def get_logs(action: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None,
+             search: Optional[str] = None, limit: int = 200, admin: dict = Depends(require_admin)):
+    """date_from / date_to dạng 'YYYY-MM-DD HH:MM:SS' theo giờ UTC (cùng định dạng cột created_at)."""
     query = ("SELECT l.*, u.full_name, u.email FROM activity_logs l "
-              "LEFT JOIN users u ON l.user_id = u.id")
+              "LEFT JOIN users u ON l.user_id = u.id WHERE 1=1")
     params = []
     if action:
-        query += " WHERE l.action = ?"
+        query += " AND l.action = ?"
         params.append(action)
-    query += " ORDER BY l.created_at DESC LIMIT 200"
+    if date_from:
+        query += " AND l.created_at >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND l.created_at < ?"
+        params.append(date_to)
+    if search:
+        query += " AND (u.full_name LIKE ? OR u.email LIKE ? OR l.detail LIKE ?)"
+        params += [f"%{search}%"] * 3
+    query += " ORDER BY l.created_at DESC, l.id DESC LIMIT ?"
+    params.append(max(1, min(limit, 1000)))
     with get_db() as db:
         return [dict(r) for r in db.execute(query, params).fetchall()]
+
+
+class DeleteLogsRequest(BaseModel):
+    date_from: Optional[str] = None   # 'YYYY-MM-DD HH:MM:SS' (UTC), tính từ thời điểm này
+    date_to: Optional[str] = None     # tới trước thời điểm này
+    all: bool = False
+
+
+@router.post("/logs/delete")
+def delete_logs(payload: DeleteLogsRequest, admin: dict = Depends(require_admin)):
+    """Xóa nhật ký theo khoảng thời gian (hoặc toàn bộ). Phải chỉ rõ khoảng thời gian hoặc all=true."""
+    if not payload.all and not (payload.date_from or payload.date_to):
+        raise HTTPException(400, "Hãy chọn khoảng thời gian cần xóa")
+    query, params = "DELETE FROM activity_logs WHERE 1=1", []
+    if not payload.all:
+        if payload.date_from:
+            query += " AND created_at >= ?"
+            params.append(payload.date_from)
+        if payload.date_to:
+            query += " AND created_at < ?"
+            params.append(payload.date_to)
+    with get_db() as db:
+        deleted = db.execute(query, params).rowcount
+    return {"deleted": deleted, "message": f"Đã xóa {deleted} dòng nhật ký"}
 
 
 # ---------- 29. Quản lý cấu hình AI ----------
@@ -390,7 +487,8 @@ def get_ai_config(admin: dict = Depends(require_admin)):
 
     provider = ai_config.LLM_PROVIDER
     active = llm_client.available_providers()
-    labels = {"claude": f"Claude ({ai_config.ANTHROPIC_MODEL})", "gemini": f"Gemini ({ai_config.GEMINI_MODEL})"}
+    labels = {"claude": f"Claude ({ai_config.ANTHROPIC_MODEL})", "gemini": f"Gemini ({ai_config.GEMINI_MODEL})",
+              "groq": f"Groq ({ai_config.GROQ_MODEL})"}
     if provider == "dataset" or not active:
         model_label = "Nội dung có sẵn (knowledge base + tài liệu môn học)"
     else:

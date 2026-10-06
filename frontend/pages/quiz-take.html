@@ -44,7 +44,7 @@
 </div>
 <script src="../js/api.js"></script>
 <script>
-requireAuth();
+requireRole("STUDENT");
 const quizData = JSON.parse(sessionStorage.getItem("eduai_current_quiz") || "null");
 if (!quizData) window.location.href = "quiz-list.html";
 
