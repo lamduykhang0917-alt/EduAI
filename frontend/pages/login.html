@@ -50,7 +50,7 @@
     const base = API_BASE;
     const r = await fetch(base + '/api/public/stats'); const d = await r.json();
     document.getElementById('authStats').innerHTML =
-      `<div class="s"><b>${d.courses}</b><span>Môn học</span></div><div class="s"><b>${d.documents}</b><span>Tài liệu</span></div><div class="s"><b>${d.questions}</b><span>Câu hỏi ôn tập</span></div>`;
+      `<div class="s"><b>${d.courses}</b><span>Môn học</span></div><div class="s"><b>${d.documents}</b><span>Tài liệu</span></div><div class="s"><b>999+</b><span>Câu hỏi ôn tập</span></div>`;
   } catch (e) {}
 })();
 function togglePw(id, btn){ const i=document.getElementById(id); const show=i.type==='password'; i.type=show?'text':'password'; btn.textContent=show?'🙈':'👁️'; }
