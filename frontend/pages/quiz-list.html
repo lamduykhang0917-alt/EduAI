@@ -150,6 +150,13 @@ function renderCourseOptions() {
 
 async function init() {
   const [courses, meta] = await Promise.all([Api.courses(), Api.quizMeta()]);
+  // Tương thích backend cũ chưa có level1/2/3 và "__all__"
+  const all = { total: 0, basic: 0, medium: 0, advanced: 0 };
+  Object.keys(meta).forEach(k => { if (k !== "__all__") ["total","basic","medium","advanced"].forEach(f => all[f] += meta[k][f] || 0); });
+  if (!meta.__all__) meta.__all__ = all;
+  Object.values(meta).forEach(m => {
+    if (m.level1 === undefined) { m.level1 = m.basic || 0; m.level2 = (m.medium || 0) + (m.advanced || 0); m.level3 = m.total || 0; }
+  });
   quizMeta = meta;
   const sel = document.getElementById("courseSelect");
   sel.innerHTML = '<option value="__all__">Tất cả môn học</option>';
