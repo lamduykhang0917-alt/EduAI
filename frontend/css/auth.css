@@ -48,3 +48,4 @@ body.auth { margin:0; min-height:100vh; background:#f4f6fb; font-family:'Inter',
 .str { display:flex; gap:5px; margin-top:8px; } .str i { flex:1; height:4px; border-radius:4px; background:#e2e8f0; }
 .str i.on1{background:#ef4444}.str i.on2{background:#f59e0b}.str i.on3{background:#3b82f6}.str i.on4{background:#10b981}
 @media (max-width:900px){ .auth-shell{grid-template-columns:1fr} .auth-visual{padding:26px 24px 30px} .auth-points,.auth-stats,.auth-visual .lead{display:none} .auth-visual h2{font-size:24px;margin:18px 0 0} .auth-form-side{align-items:flex-start;padding-top:28px} }
+.a-btn.ok, .a-btn.ok:disabled { opacity:1; background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 8px 20px rgba(34,197,94,.4); }

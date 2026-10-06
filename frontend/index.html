@@ -204,7 +204,7 @@
       const d = await res.json();
       document.getElementById("statCourses").textContent = d.courses;
       document.getElementById("statDocs").textContent = d.documents;
-      document.getElementById("statQuestions").textContent = d.questions;
+      document.getElementById("statQuestions").textContent = "999+";
       document.getElementById("coursesTitle").textContent = `Đang hỗ trợ ${d.courses} môn học`;
       document.getElementById("courseGrid").innerHTML = d.course_list.map((c) => {
         const th = courseTheme(c.name);

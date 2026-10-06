@@ -84,7 +84,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
     const data = await Api.register(document.getElementById('fullName').value, document.getElementById('email').value.trim(),
       document.getElementById('password').value, document.getElementById('confirmPassword').value);
     Api.setToken(data.access_token);
-    sb.textContent='🎉 Tạo tài khoản thành công! Đang chuyển hướng...'; sb.style.display='block'; btn.textContent='✓ Thành công';
+    sb.textContent='🎉 Tạo tài khoản thành công! Đang chuyển hướng...'; sb.style.display='block'; btn.textContent='✓ Thành công'; btn.classList.add('ok');
     setTimeout(()=>window.location.href='dashboard.html', 800);
   } catch (err) {
     document.getElementById('errorText').textContent=err.message; eb.style.display='flex'; btn.disabled=false; btn.textContent='Tạo tài khoản';

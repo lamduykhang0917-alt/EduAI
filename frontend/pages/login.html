@@ -63,7 +63,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   try {
     const data = await Api.login(document.getElementById('email').value.trim(), document.getElementById('password').value);
     Api.setToken(data.access_token);
-    btn.textContent='✓ Thành công';
+    btn.textContent='✓ Thành công'; btn.classList.add('ok');
     setTimeout(()=>{ window.location.href = data.role==='ADMIN' ? 'admin-dashboard.html' : 'dashboard.html'; }, 400);
   } catch (err) {
     document.getElementById('errText').textContent = err.message;
