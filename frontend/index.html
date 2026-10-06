@@ -4,339 +4,175 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EduAI — Trợ lý AI đồng hành cùng bạn trong học tập</title>
-<meta name="description" content="EduAI: AI Chatbot hỗ trợ học tập cho sinh viên ngành Khoa học máy tính — hỏi đáp, tóm tắt tài liệu, tạo câu hỏi ôn tập, theo dõi tiến độ.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="description" content="EduAI giúp sinh viên Khoa học máy tính hỏi đáp, đọc tài liệu, ôn tập và theo dõi tiến độ với trợ lý AI.">
+<link rel="stylesheet" href="css/style.css">
 <style>
-/* ============================================================
-   Design plan
-   Color:  academic navy/blue, warmed neutrals, one accent (blue)
-   Type:   Sora (display, geometric/technical) + Inter (body/UI)
-   Layout: asymmetric hero (thesis left, live chat right) over a
-           faint graph/node lattice — the subject is literally
-           graph algorithms (BFS/DFS) the product teaches
-   ============================================================ */
-:root {
-  --bg: #f3f5f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f6;
-  --ink: #0b1220;
-  --ink-dim: #566077;
-  --ink-faint: #8993a8;
-  --line: #e1e6ee;
-  --accent: #2554eb;
-  --accent-ink: #ffffff;
-  --navy: #070d1c;
-  --navy-surface: #101a30;
-  --navy-line: rgba(255,255,255,0.09);
-  --navy-ink: #f3f6fb;
-  --navy-ink-dim: rgba(243,246,251,0.62);
-  --radius-s: 10px;
-  --radius-m: 14px;
-  --radius-l: 20px;
-  --font-display: 'Sora', 'Inter', -apple-system, sans-serif;
-  --font-body: 'Inter', -apple-system, sans-serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #080d19; --surface: #101a30; --surface-2: #16213a;
-    --ink: #f3f6fb; --ink-dim: #a9b3c9; --ink-faint: #70799262;
-    --line: #223049; --accent: #5b8cff; --accent-ink: #061024;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #080d19; --surface: #101a30; --surface-2: #16213a;
-  --ink: #f3f6fb; --ink-dim: #a9b3c9; --ink-faint: #707992;
-  --line: #223049; --accent: #5b8cff; --accent-ink: #061024;
-  color-scheme: dark;
-}
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  /* Thanh điều hướng */
+  .land-nav { position: sticky; top: 0; z-index: 50; color: #fff;
+    background: radial-gradient(circle at 1px 1px, rgba(255,255,255,.08) 1px, transparent 0) 0 0 / 18px 18px, linear-gradient(120deg, #1e1b6e 0%, #1d4ed8 55%, #2563eb 100%);
+    box-shadow: 0 2px 16px rgba(15,23,42,.18); }
+  .land-nav .wrap { display: flex; align-items: center; gap: 8px; height: 64px; }
+  .land-nav .links { display: flex; gap: 2px; margin-left: 12px; flex: 1; }
+  .land-nav .links a { padding: 9px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: rgba(255,255,255,.82); }
+  .land-nav .links a:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .land-nav .cta { display: flex; gap: 8px; align-items: center; }
+  .land-nav .login { padding: 9px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; color: #fff; }
+  .land-nav .login:hover { background: rgba(255,255,255,.12); }
+  .land-nav .signup { padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; background: #fff; color: var(--indigo-700); box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+  @media (max-width: 760px) { .land-nav .links { display: none; } .land-nav .cta { margin-left: auto; } .land-nav .login, .land-nav .signup { white-space: nowrap; padding: 8px 12px; font-size: 13px; } }
 
-*, *::before, *::after { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font-family: var(--font-body); line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
-p { margin: 0; }
-a { color: inherit; text-decoration: none; }
-button { font-family: inherit; }
-img, svg { display: block; }
-.wrap { max-width: 1160px; margin: 0 auto; padding-inline: 24px; }
-.ico { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  /* Hero */
+  .hero { position: relative; overflow: hidden; color: #fff; padding: 64px 0 72px;
+    background: linear-gradient(120deg, #1e1b6e 0%, #2563eb 62%, #0ea5e9 118%); }
+  .hero::before { content:""; position:absolute; right:-120px; top:-140px; width:520px; height:520px; border-radius:50%; background:rgba(255,255,255,.07); }
+  .hero::after { content:""; position:absolute; left:38%; bottom:-200px; width:420px; height:420px; border-radius:50%; background:rgba(255,255,255,.06); }
+  .hero .wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; }
+  @media (max-width: 960px) { .hero .wrap { grid-template-columns: 1fr; } .hero { padding: 44px 0 52px; } }
+  .badge-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.32); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
+  .badge-pill i { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; display: inline-block; }
+  .hero h1 { font-family: var(--font-display); font-size: clamp(34px, 5vw, 54px); line-height: 1.12; letter-spacing: -1.2px; margin: 0 0 18px; font-weight: 800; }
+  .hero h1 em { font-style: normal; color: #fde68a; }
+  .hero .lead { font-size: 17px; line-height: 1.65; opacity: .9; max-width: 540px; margin: 0 0 26px; }
+  .hero .hero-cta a { padding: 14px 24px; font-size: 15px; border-radius: 14px; }
+  .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 34px; max-width: 520px; }
+  .hero-stats div { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); border-radius: 16px; padding: 14px 16px; backdrop-filter: blur(4px); }
+  .hero-stats b { display: block; font-family: var(--font-display); font-size: 28px; line-height: 1.1; }
+  .hero-stats span { font-size: 12.5px; opacity: .9; }
 
-/* ---------- NAV ---------- */
-.pub-nav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--navy) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--navy-line); }
-.pub-nav .wrap { display: flex; align-items: center; height: 64px; gap: 8px; }
-.pub-logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--navy-ink); margin-right: 24px; }
-.pub-logo .mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
-.pub-links { display: flex; align-items: center; gap: 2px; flex: 1; }
-.pub-links a { padding: 8px 14px; border-radius: 8px; color: var(--navy-ink-dim); font-size: 14px; font-weight: 600; transition: background .15s, color .15s; }
-.pub-links a:hover { background: rgba(255,255,255,0.07); color: var(--navy-ink); }
-.pub-actions { display: flex; align-items: center; gap: 10px; }
-.btn { border: none; border-radius: 9px; padding: 9px 18px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: transform .15s, background .15s, box-shadow .15s; white-space: nowrap; }
-.btn-ghost-nav { background: transparent; color: var(--navy-ink); }
-.btn-ghost-nav:hover { background: rgba(255,255,255,0.08); }
-.btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 14px rgba(37,84,235,0.35); }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,84,235,0.4); }
-.hamburger { display: none; background: rgba(255,255,255,0.08); border: 1px solid var(--navy-line); color: var(--navy-ink); width: 38px; height: 38px; border-radius: 8px; align-items: center; justify-content: center; cursor: pointer; }
-.pub-mobile { display: none; flex-direction: column; gap: 2px; padding: 10px 16px 18px; background: var(--navy-surface); }
-.pub-mobile a { padding: 10px 12px; border-radius: 8px; color: var(--navy-ink-dim); font-size: 14px; font-weight: 600; }
-.pub-mobile.open { display: flex; }
+  /* Khung chat minh họa */
+  .chat-demo { background: #fff; color: var(--text-primary); border-radius: 22px; box-shadow: 0 28px 60px rgba(15,23,42,.35); overflow: hidden; }
+  .chat-demo .head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); background: linear-gradient(135deg, var(--indigo-50), #fff); }
+  .chat-demo .head .m { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg,#2563eb,#4f46e5); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .chat-demo .head b { display: block; font-size: 14.5px; font-family: var(--font-display); }
+  .chat-demo .head small { color: var(--text-secondary); font-size: 12px; }
+  .chat-demo .head .on { margin-left: auto; font-size: 12px; font-weight: 600; color: #059669; display: flex; gap: 6px; align-items: center; }
+  .chat-demo .head .on::before { content:""; width:8px; height:8px; border-radius:50%; background:#10b981; }
+  .chat-demo .body { padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #fafcff; }
+  .bub { max-width: 86%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.55; }
+  .bub.user { align-self: flex-end; background: linear-gradient(135deg,#2563eb,#4f46e5); color: #fff; border-bottom-right-radius: 4px; }
+  .bub.ai { align-self: flex-start; background: #fff; border: 1px solid var(--border-subtle); border-bottom-left-radius: 4px; box-shadow: var(--shadow-xs); }
+  .bub.ai b { color: var(--indigo-700); }
+  .chat-demo .input { display: flex; gap: 10px; padding: 14px 16px; border-top: 1px solid var(--border-subtle); }
+  .chat-demo .input span { flex: 1; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 11px 14px; font-size: 13.5px; color: var(--text-muted); }
+  .chat-demo .input i { width: 42px; border-radius: 12px; background: linear-gradient(135deg,#2563eb,#4f46e5); color: #fff; display: flex; align-items: center; justify-content: center; font-style: normal; }
 
-/* ---------- HERO ---------- */
-.hero { background: var(--navy); color: var(--navy-ink); position: relative; overflow: hidden; padding: 76px 0 92px; }
-.hero-lattice { position: absolute; inset: 0; opacity: .5; pointer-events: none; }
-.hero .wrap { position: relative; display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 56px; align-items: center; }
-.eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(91,140,255,0.12); border: 1px solid rgba(91,140,255,0.3); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: #a9c2ff; margin-bottom: 22px; font-family: var(--font-body); }
-.eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.18); }
-.hero h1 { font-size: 46px; font-weight: 800; line-height: 1.14; letter-spacing: -0.5px; margin-bottom: 20px; }
-.hero h1 .accent-text { color: #7ea6ff; }
-.hero p.lead { font-size: 16.5px; color: var(--navy-ink-dim); line-height: 1.7; max-width: 480px; margin-bottom: 32px; }
-.hero-ctas { display: flex; gap: 12px; margin-bottom: 40px; flex-wrap: wrap; }
-.btn-lg { padding: 13px 24px; font-size: 15px; border-radius: 10px; }
-.btn-outline { background: transparent; color: var(--navy-ink); border: 1px solid var(--navy-line); }
-.btn-outline:hover { background: rgba(255,255,255,0.06); }
-.hero-stats { display: flex; gap: 32px; font-family: var(--font-body); }
-.hero-stats div b { display: block; font-size: 21px; font-weight: 800; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
-.hero-stats div span { font-size: 12.5px; color: var(--navy-ink-dim); }
+  /* Khối chung */
+  section.block { padding: 72px 0; }
+  section.block.alt { background: rgba(255,255,255,.65); }
+  .sec-head { margin-bottom: 34px; max-width: 680px; }
+  .sec-head h2 { font-family: var(--font-display); font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -.8px; margin: 0 0 10px; line-height: 1.2; }
+  .sec-head p { margin: 0; font-size: 16px; color: var(--text-secondary); line-height: 1.6; }
+  .sec-head .tag { display: inline-block; font-size: 13px; font-weight: 700; color: var(--indigo-600); background: var(--indigo-50); padding: 5px 12px; border-radius: 999px; margin-bottom: 14px; }
 
-/* chat mock */
-.chat-mock { background: var(--navy-surface); border: 1px solid var(--navy-line); border-radius: var(--radius-l); padding: 18px; box-shadow: 0 30px 70px rgba(0,0,0,0.5); font-family: var(--font-body); }
-.chat-mock-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--navy-line); }
-.chat-mock-head .m { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; }
-.chat-mock-head span { font-size: 13px; font-weight: 700; display: block; }
-.chat-mock-head small { display: block; font-size: 11px; color: var(--navy-ink-dim); font-weight: 400; }
-.chat-mock-head .live { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4ade80; font-weight: 600; }
-.chat-mock-head .live i { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
-.bubble { max-width: 86%; padding: 10px 13px; border-radius: 11px; font-size: 13.5px; line-height: 1.55; margin-bottom: 10px; }
-.bubble.user { background: var(--accent); color: var(--accent-ink); margin-left: auto; border-bottom-right-radius: 3px; }
-.bubble.ai { background: rgba(255,255,255,0.055); color: var(--navy-ink); border: 1px solid var(--navy-line); border-bottom-left-radius: 3px; }
-.bubble.ai b { color: #a9c2ff; }
-.bubble.ai code { font-family: 'SFMono-Regular', Consolas, monospace; background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-.chat-mock-input { margin-top: 12px; display: flex; gap: 8px; }
-.chat-mock-input .f { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--navy-line); border-radius: 9px; padding: 10px 12px; font-size: 13px; color: var(--navy-ink-dim); }
-.chat-mock-input .s { width: 38px; background: var(--accent); color: var(--accent-ink); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 960px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feat-grid { grid-template-columns: 1fr; } }
+  .feat { border-radius: 20px; padding: 24px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 12px 26px rgba(15,23,42,.14); min-height: 210px; }
+  .feat::after { content:""; position:absolute; right:-30px; bottom:-40px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.14); }
+  .feat .ic { font-size: 30px; margin-bottom: 14px; }
+  .feat h3 { margin: 0 0 8px; font-size: 18px; }
+  .feat p { margin: 0; font-size: 14px; line-height: 1.6; opacity: .93; position: relative; z-index: 1; }
 
-/* ---------- SECTIONS ---------- */
-section { padding: 80px 0; }
-.section-head { max-width: 560px; margin-bottom: 44px; }
-.section-head .kicker { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; letter-spacing: .01em; }
-.section-head h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
-.section-head p { color: var(--ink-dim); font-size: 15.5px; line-height: 1.65; }
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .course-grid .c-body p { min-height: 0; }
 
-.feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-m); overflow: hidden; }
-.feat-item { background: var(--surface); padding: 28px 24px; }
-.feat-item .ic-badge { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
-.feat-item .ic-badge.b1 { background: #e8edff; color: var(--accent); }
-.feat-item .ic-badge.b2 { background: #fdf0e3; color: #c2630a; }
-.feat-item .ic-badge.b3 { background: #e8f7ee; color: #15803d; }
-.feat-item .ic-badge.b4 { background: #fdeaf1; color: #be185d; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .feat-item .ic-badge.b1 { background: rgba(91,140,255,0.15); }
-  :root:not([data-theme="light"]) .feat-item .ic-badge.b2 { background: rgba(194,99,10,0.18); }
-  :root:not([data-theme="light"]) .feat-item .ic-badge.b3 { background: rgba(21,128,61,0.18); }
-  :root:not([data-theme="light"]) .feat-item .ic-badge.b4 { background: rgba(190,24,93,0.18); }
-}
-:root[data-theme="dark"] .feat-item .ic-badge.b1 { background: rgba(91,140,255,0.15); }
-:root[data-theme="dark"] .feat-item .ic-badge.b2 { background: rgba(194,99,10,0.18); }
-:root[data-theme="dark"] .feat-item .ic-badge.b3 { background: rgba(21,128,61,0.18); }
-:root[data-theme="dark"] .feat-item .ic-badge.b4 { background: rgba(190,24,93,0.18); }
-.feat-item h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 7px; font-family: var(--font-body); }
-.feat-item p { font-size: 13.5px; color: var(--ink-dim); line-height: 1.6; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: s; }
+  @media (max-width: 960px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+  .step { background: #fff; border: 1px solid var(--border-subtle); border-radius: 20px; padding: 24px; box-shadow: var(--shadow-xs); }
+  .step .n { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg,#2563eb,#4f46e5); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; font-family: var(--font-display); }
+  .step h3 { margin: 0 0 6px; font-size: 17px; }
+  .step p { margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 
-.courses-section { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.course-chip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.course-chip { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 18px 20px; display: flex; align-items: center; gap: 14px; transition: border-color .15s, transform .15s; }
-.course-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
-.course-chip .code { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-s); background: var(--surface-2); color: var(--accent); font-weight: 800; font-size: 12px; font-family: var(--font-display); display: flex; align-items: center; justify-content: center; }
-.course-chip .name { font-weight: 700; font-size: 14.5px; margin-bottom: 2px; }
-.course-chip .desc { font-size: 12.5px; color: var(--ink-faint); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .cta-band { border-radius: 26px; padding: 44px 40px; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;
+    background: linear-gradient(120deg, #1e1b6e 0%, #2563eb 65%, #0ea5e9 125%); box-shadow: 0 18px 40px rgba(37,99,235,.3); position: relative; overflow: hidden; }
+  .cta-band::after { content:""; position:absolute; right:-60px; top:-80px; width:300px; height:300px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .cta-band h2 { font-family: var(--font-display); margin: 0 0 6px; font-size: 28px; }
+  .cta-band p { margin: 0; opacity: .88; }
+  .cta-band .hero-cta { margin: 0; position: relative; z-index: 1; }
 
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
-.step { position: relative; padding-top: 46px; }
-.step .n { position: absolute; top: 0; left: 0; width: 34px; height: 34px; border-radius: 9px; background: var(--navy); color: var(--navy-ink); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; font-family: var(--font-display); }
-.step h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 7px; font-family: var(--font-body); }
-.step p { font-size: 13.5px; color: var(--ink-dim); line-height: 1.6; }
-
-.cta-band { background: var(--navy); color: var(--navy-ink); border-radius: var(--radius-l); padding: 48px 52px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; position: relative; overflow: hidden; }
-.cta-band h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
-.cta-band p { color: var(--navy-ink-dim); font-size: 14.5px; }
-
-footer { background: var(--navy); color: var(--navy-ink-dim); padding: 56px 0 28px; }
-.footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; margin-bottom: 36px; }
-footer h4 { color: var(--navy-ink); font-size: 14px; font-weight: 700; margin-bottom: 14px; font-family: var(--font-body); }
-footer p, footer li { font-size: 13.5px; line-height: 1.85; }
-footer ul { list-style: none; padding: 0; margin: 0; }
-footer a:hover { color: var(--navy-ink); }
-.footer-brand { display: flex; align-items: center; gap: 9px; color: var(--navy-ink); font-weight: 700; font-size: 16px; margin-bottom: 12px; font-family: var(--font-display); }
-.footer-brand .mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
-.footer-bottom { border-top: 1px solid var(--navy-line); padding-top: 20px; font-size: 12.5px; text-align: center; }
-
-@media (max-width: 900px) {
-  .pub-links { display: none; }
-  .hamburger { display: flex; }
-  .hero .wrap { grid-template-columns: 1fr; }
-  .hero h1 { font-size: 32px; }
-  .feat-grid, .steps { grid-template-columns: 1fr 1fr; }
-  .course-chip-grid { grid-template-columns: 1fr; }
-  .footer-grid { grid-template-columns: 1fr; gap: 28px; }
-  .cta-band { padding: 32px 26px; }
-  section { padding: 56px 0; }
-}
+  footer.land-foot { margin-top: 72px; padding: 36px 0; background: #0f172a; color: #94a3b8; font-size: 14px; }
+  footer.land-foot .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  footer.land-foot b { color: #fff; font-family: var(--font-display); }
+  footer.land-foot a { color: #cbd5e1; margin-right: 18px; }
+  footer.land-foot a:hover { color: #fff; }
 </style>
 </head>
 <body>
 
-<nav class="pub-nav">
+<header class="land-nav">
   <div class="wrap">
-    <a class="pub-logo" href="#"><span class="mark">E</span>EduAI</a>
-    <div class="pub-links">
+    <a class="topnav-logo" href="index.html"><span class="mark">E</span>EduAI</a>
+    <nav class="links">
       <a href="#features">Tính năng</a>
       <a href="#courses">Môn học</a>
       <a href="#how">Cách hoạt động</a>
-    </div>
-    <div class="pub-actions">
-      <a class="btn btn-ghost-nav" href="pages/login.html">Đăng nhập</a>
-      <a class="btn btn-primary" href="pages/register.html">Đăng ký miễn phí</a>
-      <button class="hamburger" aria-label="Menu" onclick="document.getElementById('mobileMenu').classList.toggle('open')">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      </button>
-    </div>
-  </div>
-  <div class="pub-mobile" id="mobileMenu">
-    <a href="#features">Tính năng</a>
-    <a href="#courses">Môn học</a>
-    <a href="#how">Cách hoạt động</a>
-    <a href="pages/login.html">Đăng nhập</a>
-    <a href="pages/register.html">Đăng ký miễn phí</a>
-  </div>
-</nav>
-
-<header class="hero">
-  <svg class="hero-lattice" viewBox="0 0 1160 560" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-    <defs>
-      <radialGradient id="fade" cx="70%" cy="35%" r="65%">
-        <stop offset="0%" stop-color="#5b8cff" stop-opacity="0.22"/>
-        <stop offset="100%" stop-color="#5b8cff" stop-opacity="0"/>
-      </radialGradient>
-    </defs>
-    <rect width="1160" height="560" fill="url(#fade)"/>
-    <g stroke="#3a538f" stroke-width="1" opacity="0.5">
-      <line x1="760" y1="60" x2="880" y2="140"/>
-      <line x1="880" y1="140" x2="840" y2="260"/>
-      <line x1="880" y1="140" x2="1010" y2="110"/>
-      <line x1="840" y1="260" x2="960" y2="330"/>
-      <line x1="840" y1="260" x2="700" y2="320"/>
-      <line x1="960" y1="330" x2="1080" y2="280"/>
-      <line x1="700" y1="320" x2="760" y2="440"/>
-      <line x1="960" y1="330" x2="1000" y2="450"/>
-      <line x1="1010" y1="110" x2="1120" y2="180"/>
-    </g>
-    <g fill="#5b8cff">
-      <circle cx="760" cy="60" r="4"/>
-      <circle cx="880" cy="140" r="5"/>
-      <circle cx="1010" cy="110" r="4"/>
-      <circle cx="840" cy="260" r="5"/>
-      <circle cx="960" cy="330" r="4"/>
-      <circle cx="700" cy="320" r="4"/>
-      <circle cx="1080" cy="280" r="4"/>
-      <circle cx="760" cy="440" r="4"/>
-      <circle cx="1000" cy="450" r="4"/>
-      <circle cx="1120" cy="180" r="4"/>
-    </g>
-  </svg>
-  <div class="wrap">
-    <div>
-      <div class="eyebrow"><span class="dot"></span>Dành cho sinh viên ngành Khoa học máy tính</div>
-      <h1>Trợ lý AI đồng hành<br>cùng bạn trong <span class="accent-text">học tập</span></h1>
-      <p class="lead">EduAI dùng PhoBERT để hiểu câu hỏi tiếng Việt, kết hợp dữ liệu môn học để hỏi đáp, giải thích khái niệm, tóm tắt tài liệu, tạo câu hỏi ôn tập và theo dõi tiến độ — cho các môn của ngành Khoa học máy tính.</p>
-      <div class="hero-ctas">
-        <a class="btn btn-primary btn-lg" href="pages/register.html">Dùng thử miễn phí →</a>
-        <a class="btn btn-outline btn-lg" href="#courses">Xem môn học</a>
-      </div>
-      <div class="hero-stats">
-        <div><b id="statCourses">—</b><span>Môn học</span></div>
-        <div><b id="statIntents">—</b><span>Nhóm ý định AI</span></div>
-        <div><b>24/7</b><span>Hỏi đáp tức thì</span></div>
-      </div>
-    </div>
-    <div class="chat-mock">
-      <div class="chat-mock-head">
-        <div class="m">E</div>
-        <div><span>EduAI Assistant</span><small>Cấu trúc dữ liệu & giải thuật</small></div>
-        <div class="live"><i></i>Đang hoạt động</div>
-      </div>
-      <div class="bubble user">Thuật toán BFS là gì?</div>
-      <div class="bubble ai"><b>EduAI:</b> BFS (<code>Breadth-First Search</code>) duyệt đồ thị theo chiều rộng — thăm hết các đỉnh ở cùng một mức trước khi sang mức tiếp theo, dùng hàng đợi (queue) để lưu đỉnh chờ duyệt.</div>
-      <div class="bubble user">Cho mình 5 câu ôn tập chương này</div>
-      <div class="bubble ai"><b>EduAI:</b> Đang tạo 5 câu hỏi về Duyệt đồ thị (BFS/DFS), độ khó trung bình...</div>
-      <div class="chat-mock-input">
-        <div class="f">Nhập câu hỏi của bạn...</div>
-        <div class="s"><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      </div>
+    </nav>
+    <div class="cta">
+      <a class="login" href="pages/login.html">Đăng nhập</a>
+      <a class="signup" href="pages/register.html">Đăng ký miễn phí</a>
     </div>
   </div>
 </header>
 
-<section id="features">
+<section class="hero">
   <div class="wrap">
-    <div class="section-head">
-      <div class="kicker">TÍNH NĂNG</div>
-      <h2>Mọi thứ bạn cần để tự học hiệu quả hơn</h2>
-      <p>Một trợ lý duy nhất cho việc hỏi đáp, ôn tập và theo dõi kết quả học tập.</p>
+    <div>
+      <div class="badge-pill"><i></i>Dành cho sinh viên ngành Khoa học máy tính</div>
+      <h1>Trợ lý AI đồng hành cùng bạn trong <em>học tập</em></h1>
+      <p class="lead">Hỏi bất kỳ khái niệm nào, đọc tài liệu từng chương ngay trên web, làm câu hỏi ôn tập có giải thích và xem mình tiến bộ mỗi ngày.</p>
+      <div class="hero-cta">
+        <a class="solid" href="pages/register.html">Dùng thử miễn phí →</a>
+        <a class="ghost" href="#courses">Xem môn học</a>
+      </div>
+      <div class="hero-stats">
+        <div><b id="statCourses">—</b><span>Môn học</span></div>
+        <div><b id="statDocs">—</b><span>Tài liệu</span></div>
+        <div><b id="statQuestions">—</b><span>Câu hỏi ôn tập</span></div>
+      </div>
     </div>
+
+    <div class="chat-demo" aria-label="Ví dụ hội thoại với EduAI">
+      <div class="head"><div class="m">E</div><div><b>EduAI Assistant</b><small>Trợ lý AI hỗ trợ học tập</small></div><span class="on">Đang hoạt động</span></div>
+      <div class="body">
+        <div class="bub user">Thuật toán BFS là gì?</div>
+        <div class="bub ai"><b>BFS</b> (Breadth-First Search) duyệt đồ thị theo chiều rộng: thăm hết các đỉnh ở cùng một mức trước khi sang mức tiếp theo, dùng hàng đợi (queue) để lưu đỉnh chờ duyệt.</div>
+        <div class="bub user">Cho mình 5 câu ôn tập chương này</div>
+        <div class="bub ai">Đang tạo 5 câu hỏi về <b>Duyệt đồ thị (BFS/DFS)</b>, độ khó trung bình...</div>
+      </div>
+      <div class="input"><span>Nhập câu hỏi của bạn...</span><i>➤</i></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="features">
+  <div class="wrap">
+    <div class="sec-head"><span class="tag">Tính năng</span><h2>Mọi thứ bạn cần để tự học hiệu quả hơn</h2><p>Một trợ lý duy nhất cho việc hỏi đáp, đọc tài liệu, ôn tập và theo dõi kết quả.</p></div>
     <div class="feat-grid">
-      <div class="feat-item">
-        <div class="ic-badge b1"><svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
-        <h3>Hỏi đáp tức thì</h3>
-        <p>Hỏi AI bất kỳ lúc nào về khái niệm, thuật toán hay bài tập — không cần chờ giờ lên lớp.</p>
-      </div>
-      <div class="feat-item">
-        <div class="ic-badge b2"><svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
-        <h3>Tóm tắt tài liệu</h3>
-        <p>Tóm tắt nhanh nội dung chương học, rút ra ý chính và từ khóa quan trọng.</p>
-      </div>
-      <div class="feat-item">
-        <div class="ic-badge b3"><svg class="ico" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <h3>Tạo câu hỏi ôn tập</h3>
-        <p>Sinh câu hỏi trắc nghiệm theo môn, chương và độ khó bạn chọn, kèm giải thích đáp án.</p>
-      </div>
-      <div class="feat-item">
-        <div class="ic-badge b4"><svg class="ico" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg></div>
-        <h3>Theo dõi tiến độ</h3>
-        <p>Xem tiến độ từng môn, kết quả kiểm tra và nhận đề xuất nội dung nên ôn tiếp theo.</p>
-      </div>
+      <div class="feat" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);"><div class="ic">💬</div><h3>Hỏi đáp tức thì</h3><p>Hỏi AI bất kỳ lúc nào về khái niệm, thuật toán hay bài tập, không cần chờ đến giờ lên lớp.</p></div>
+      <div class="feat" style="background:linear-gradient(135deg,#ea580c,#f59e0b);"><div class="ic">📄</div><h3>Đọc & tóm tắt tài liệu</h3><p>Đọc nội dung từng chương ngay trên web, rút ra ý chính và từ khóa quan trọng.</p></div>
+      <div class="feat" style="background:linear-gradient(135deg,#059669,#0d9488);"><div class="ic">📝</div><h3>Ôn tập có giải thích</h3><p>Làm câu hỏi trắc nghiệm theo môn và độ khó, xem đáp án kèm lời giải sau khi nộp.</p></div>
+      <div class="feat" style="background:linear-gradient(135deg,#db2777,#e11d48);"><div class="ic">📈</div><h3>Theo dõi tiến độ</h3><p>Xem điểm từng bài, tiến độ từng môn và nhận gợi ý nên ôn nội dung nào tiếp theo.</p></div>
     </div>
   </div>
 </section>
 
-<section class="courses-section" id="courses">
+<section class="block alt" id="courses">
   <div class="wrap">
-    <div class="section-head">
-      <div class="kicker">MÔN HỌC</div>
-      <h2 id="coursesTitle">Các môn học được hỗ trợ</h2>
-      <p>Dữ liệu tri thức được biên soạn theo giáo trình thực tế của từng môn.</p>
-    </div>
-    <div class="course-chip-grid" id="courseGrid"><div class="course-chip"><div class="code">…</div><div><div class="name">Đang tải danh sách môn học...</div></div></div></div>
-    </div>
+    <div class="sec-head"><span class="tag">Môn học</span><h2 id="coursesTitle">Các môn học được hỗ trợ</h2><p>Nội dung được nạp từ giáo trình và bài giảng của từng môn.</p></div>
+    <div class="course-grid" id="courseGrid"><div class="c-card"><div class="c-body"><h3>Đang tải danh sách môn học...</h3></div></div></div>
   </div>
 </section>
 
-<section id="how">
+<section class="block" id="how">
   <div class="wrap">
-    <div class="section-head">
-      <div class="kicker">CÁCH HOẠT ĐỘNG</div>
-      <h2>Bắt đầu trong 4 bước</h2>
-    </div>
+    <div class="sec-head"><span class="tag">Cách hoạt động</span><h2>Bắt đầu trong 4 bước</h2></div>
     <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Đăng ký tài khoản</h3><p>Tạo tài khoản sinh viên miễn phí chỉ với email trong vài giây.</p></div>
+      <div class="step"><div class="n">1</div><h3>Đăng ký tài khoản</h3><p>Tạo tài khoản sinh viên miễn phí chỉ với email, mất vài giây.</p></div>
       <div class="step"><div class="n">2</div><h3>Chọn môn học</h3><p>Chọn môn bạn đang học để AI trả lời đúng trọng tâm chương trình.</p></div>
-      <div class="step"><div class="n">3</div><h3>Hỏi AI & ôn tập</h3><p>Đặt câu hỏi, yêu cầu tóm tắt, hoặc tạo đề ôn tập theo chương.</p></div>
-      <div class="step"><div class="n">4</div><h3>Theo dõi tiến độ</h3><p>Xem kết quả, điểm trung bình và đề xuất nội dung cần học tiếp.</p></div>
+      <div class="step"><div class="n">3</div><h3>Hỏi AI và ôn tập</h3><p>Đặt câu hỏi, yêu cầu tóm tắt hoặc tạo bộ câu hỏi ôn tập theo chương.</p></div>
+      <div class="step"><div class="n">4</div><h3>Theo dõi tiến độ</h3><p>Xem kết quả, điểm trung bình và gợi ý nội dung cần học tiếp.</p></div>
     </div>
   </div>
 </section>
@@ -344,66 +180,44 @@ footer a:hover { color: var(--navy-ink); }
 <section>
   <div class="wrap">
     <div class="cta-band">
-      <div>
-        <h2>Sẵn sàng học thông minh hơn?</h2>
-        <p>Miễn phí cho sinh viên. Không cần thẻ thanh toán.</p>
-      </div>
-      <a class="btn btn-primary btn-lg" href="pages/register.html">Tạo tài khoản ngay →</a>
+      <div><h2>Sẵn sàng học thông minh hơn?</h2><p>Miễn phí cho sinh viên. Không cần thẻ thanh toán.</p></div>
+      <div class="hero-cta"><a class="solid" href="pages/register.html">Tạo tài khoản ngay →</a><a class="ghost" href="pages/login.html">Tôi đã có tài khoản</a></div>
     </div>
   </div>
 </section>
 
-<footer>
+<footer class="land-foot">
   <div class="wrap">
-    <div class="footer-grid">
-      <div>
-        <div class="footer-brand"><span class="mark">E</span>EduAI</div>
-        <p>Trợ lý AI đồng hành cùng bạn trong học tập. Đồ án Nghiên cứu và phát triển hệ thống AI Chatbot hỗ trợ học tập cho sinh viên — ngành Khoa học máy tính.</p>
-      </div>
-      <div>
-        <h4>Liên kết</h4>
-        <ul>
-          <li><a href="#features">Tính năng</a></li>
-          <li><a href="#courses">Môn học</a></li>
-          <li><a href="pages/login.html">Đăng nhập</a></li>
-          <li><a href="pages/register.html">Đăng ký</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Công nghệ</h4>
-        <ul>
-          <li>PhoBERT — xử lý tiếng Việt</li>
-          <li>FastAPI Backend</li>
-          <li>SQLite Database</li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">© 2026 EduAI. Đồ án Khoa học máy tính.</div>
+    <div><b>EduAI</b><br>Trợ lý AI đồng hành cùng bạn trong học tập.<br>Đồ án ngành Khoa học máy tính.</div>
+    <div><a href="#features">Tính năng</a><a href="#courses">Môn học</a><a href="pages/login.html">Đăng nhập</a><a href="pages/register.html">Đăng ký</a></div>
   </div>
 </footer>
 
+<script src="js/api.js"></script>
 <script>
 // Số liệu và danh sách môn lấy trực tiếp từ hệ thống, không ghi cứng.
-(function () {
-  const API = window.EDUAI_API_BASE || "https://eduai-backend-tdtx.onrender.com";
-  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  async function load() {
-    for (let i = 0; i < 3; i++) {
-      try {
-        const res = await fetch(API + "/api/public/stats");
-        if (!res.ok) throw new Error();
-        const d = await res.json();
-        document.getElementById("statCourses").textContent = d.courses;
-        document.getElementById("statIntents").textContent = d.intents || "—";
-        document.getElementById("coursesTitle").textContent = `Đang hỗ trợ ${d.courses} môn học`;
-        document.getElementById("courseGrid").innerHTML = d.course_list.map((c) =>
-          `<div class="course-chip"><div class="code">${esc((c.code || "").replace(/\d+$/, "") || "•")}</div><div><div class="name">${esc(c.name)}</div><div class="desc">${esc(c.description || "")}</div></div></div>`).join("");
-        return;
-      } catch (e) { await new Promise((r) => setTimeout(r, 3000)); }
-    }
-    document.getElementById("courseGrid").innerHTML = '<div class="course-chip"><div class="code">!</div><div><div class="name">Chưa tải được danh sách môn học</div><div class="desc">Máy chủ đang khởi động, hãy tải lại trang sau ít phút.</div></div></div>';
+(async function () {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(API_BASE + "/api/public/stats");
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      document.getElementById("statCourses").textContent = d.courses;
+      document.getElementById("statDocs").textContent = d.documents;
+      document.getElementById("statQuestions").textContent = d.questions;
+      document.getElementById("coursesTitle").textContent = `Đang hỗ trợ ${d.courses} môn học`;
+      document.getElementById("courseGrid").innerHTML = d.course_list.map((c) => {
+        const th = courseTheme(c.name);
+        return `<a class="c-card" href="pages/register.html">
+          <div class="c-cover" style="${courseCover(c.name)}"><span class="c-icon">${th.icon}</span><span class="c-code">${esc(c.code)}</span></div>
+          <div class="c-body"><h3>${esc(c.name)}</h3><p>${esc(c.description || "")}</p>
+            <div class="c-chips"><span class="c-chip">📖 ${c.chapter_count || 0} chương</span><span class="c-chip ${c.document_count ? "on" : ""}">📄 ${c.document_count || 0} tài liệu</span></div></div>
+          <div class="c-foot"><span class="c-go">Học môn này →</span></div></a>`;
+      }).join("");
+      return;
+    } catch (e) { await new Promise((r) => setTimeout(r, 3000)); }
   }
-  load();
+  document.getElementById("courseGrid").innerHTML = '<div class="c-card"><div class="c-body"><h3>Chưa tải được danh sách môn học</h3><p>Máy chủ đang khởi động, hãy tải lại trang sau ít phút.</p></div></div>';
 })();
 </script>
 </body>

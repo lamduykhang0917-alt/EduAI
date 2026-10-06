@@ -63,7 +63,9 @@ def public_stats():
     from ai_service import config as ai_config
     with get_db() as db:
         courses = [dict(r) for r in db.execute(
-            "SELECT c.code, c.name, c.description FROM courses c WHERE c.status='active' "
+            "SELECT c.code, c.name, c.description, "
+            "(SELECT COUNT(*) FROM documents d WHERE d.course_id=c.id AND d.status='active') AS document_count, "
+            "(SELECT COUNT(*) FROM chapters h WHERE h.course_id=c.id) AS chapter_count FROM courses c WHERE c.status='active' "
             "ORDER BY (SELECT COUNT(*) FROM documents d WHERE d.course_id=c.id AND d.status='active') DESC, c.name").fetchall()]
         documents = db.execute("SELECT COUNT(*) c FROM documents WHERE status='active'").fetchone()["c"]
         questions = db.execute("SELECT COUNT(*) c FROM questions").fetchone()["c"]
