@@ -58,18 +58,13 @@
         </div>
         <div>
           <label>Số câu hỏi</label>
-          <select id="numQuestions">
-            <option>3</option><option selected>5</option><option>10</option>
-          </select>
+          <select id="numQuestions"></select>
         </div>
       </div>
-      <div style="margin-top:16px;">
+      <div id="availInfo" style="margin-top:12px; font-size:13px; color:var(--text-secondary);"></div>
+      <div style="margin-top:14px;">
         <label>Độ khó</label>
-        <div class="difficulty-options" id="diffOptions">
-          <div class="diff-chip" data-val="basic">Cơ bản</div>
-          <div class="diff-chip selected" data-val="">Tất cả</div>
-          <div class="diff-chip" data-val="medium">Trung bình</div>
-        </div>
+        <div class="difficulty-options" id="diffOptions"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:22px;" onclick="generate()" id="genBtn">Tạo câu hỏi</button>
       <div id="errorMsg" style="color:var(--danger); font-size:13px; margin-top:10px; display:none;"></div>
@@ -85,30 +80,61 @@
 <script>
 requireAuth();
 let selectedDifficulty = "";
+let quizMeta = {};
+const DIFF_LABELS = { basic: "Cơ bản", medium: "Trung bình", advanced: "Nâng cao" };
 
-document.querySelectorAll(".diff-chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".diff-chip").forEach(c => c.classList.remove("selected"));
-    chip.classList.add("selected");
+function renderCourseOptions() {
+  const course = document.getElementById("courseSelect").value;
+  const m = quizMeta[course] || { total: 0, basic: 0, medium: 0, advanced: 0 };
+
+  // Độ khó: chỉ hiện mức nào thật sự có câu hỏi
+  const chips = [{ val: "", label: "Hỗn hợp", count: m.total }]
+    .concat(["basic", "medium", "advanced"].filter(k => m[k] > 0).map(k => ({ val: k, label: DIFF_LABELS[k], count: m[k] })));
+  if (!chips.some(c => c.val === selectedDifficulty)) selectedDifficulty = "";
+  const box = document.getElementById("diffOptions");
+  box.innerHTML = chips.map(c =>
+    `<div class="diff-chip ${c.val === selectedDifficulty ? "selected" : ""}" data-val="${c.val}">${c.label} <span style="opacity:.6">(${c.count})</span></div>`).join("");
+  box.querySelectorAll(".diff-chip").forEach(chip => chip.addEventListener("click", () => {
     selectedDifficulty = chip.dataset.val;
-  });
-});
+    renderCourseOptions();
+  }));
+
+  // Số câu: chỉ cho chọn tối đa số câu có sẵn
+  const avail = (chips.find(c => c.val === selectedDifficulty) || chips[0]).count;
+  const sel = document.getElementById("numQuestions");
+  const prev = parseInt(sel.value) || 10;
+  const opts = [3, 5, 10, 15, 20].filter(n => n < avail);
+  if (avail > 0) opts.push(avail);
+  sel.innerHTML = opts.map(n => `<option value="${n}">${n === avail && !([3,5,10,15,20].includes(n)) ? n + " (tối đa)" : n}</option>`).join("");
+  const keep = opts.includes(prev) ? prev : (opts.includes(10) ? 10 : opts[opts.length - 1]);
+  if (keep !== undefined) sel.value = String(keep);
+
+  document.getElementById("availInfo").textContent = avail
+    ? `Ngân hàng câu hỏi có ${avail} câu phù hợp. Mỗi lần tạo sẽ chọn ngẫu nhiên các câu khác nhau.`
+    : "Môn học này chưa có câu hỏi ôn tập.";
+  document.getElementById("genBtn").disabled = avail === 0;
+}
 
 async function init() {
-  const courses = await Api.courses();
+  const [courses, meta] = await Promise.all([Api.courses(), Api.quizMeta()]);
+  quizMeta = meta;
   const sel = document.getElementById("courseSelect");
-  courses.forEach(c => {
+  const wanted = new URLSearchParams(window.location.search).get("course");
+  courses.filter(c => (meta[c.name] || {}).total > 0).forEach(c => {
     const opt = document.createElement("option");
     opt.value = c.name; opt.textContent = c.name;
+    if (wanted && wanted === c.name) opt.selected = true;
     sel.appendChild(opt);
   });
+  sel.addEventListener("change", renderCourseOptions);
+  renderCourseOptions();
 
   const results = await Api.results();
   const list = document.getElementById("resultsList");
   list.innerHTML = results.length
     ? results.slice(0, 5).map(r => `
         <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle);">
-          <span>${r.course_name || "—"} (${r.difficulty})</span>
+          <span>${r.course_name || "—"} (${DIFF_LABELS[r.difficulty] || "Hỗn hợp"})</span>
           <span style="font-weight:600; color:var(--text-primary);">${r.score}/10</span>
         </div>`).join("")
     : "Bạn chưa có kết quả kiểm tra nào.";

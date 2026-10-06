@@ -17,7 +17,7 @@ def list_courses(user: dict = Depends(get_current_user)):
                 "SELECT COUNT(*) c FROM chapters WHERE course_id = ?", (course["id"],)
             ).fetchone()["c"]
             docs = db.execute(
-                "SELECT COUNT(*) c FROM documents WHERE course_id = ?", (course["id"],)
+                "SELECT COUNT(*) c FROM documents WHERE course_id = ? AND status = 'active'", (course["id"],)
             ).fetchone()["c"]
             progress = db.execute(
                 "SELECT percent_complete FROM learning_progress WHERE user_id = ? AND course_id = ?",
@@ -40,10 +40,17 @@ def get_course(course_id: int, user: dict = Depends(get_current_user)):
             "SELECT * FROM chapters WHERE course_id = ? ORDER BY order_index", (course_id,)
         ).fetchall()
         documents = db.execute(
-            "SELECT * FROM documents WHERE course_id = ?", (course_id,)
+            "SELECT d.*, (SELECT COUNT(*) FROM document_chunks dc WHERE dc.document_id = d.id) AS chunk_count "
+            "FROM documents d WHERE d.course_id = ? AND d.status = 'active' ORDER BY d.id", (course_id,)
         ).fetchall()
+        documents = [dict(d) for d in documents]
+        chapter_list = []
+        for c in chapters:
+            item = dict(c)
+            item["document_ids"] = [d["id"] for d in documents if d["chapter_id"] == c["id"]]
+            chapter_list.append(item)
         return {
             "course": dict(course),
-            "chapters": [dict(c) for c in chapters],
-            "documents": [dict(d) for d in documents],
+            "chapters": chapter_list,
+            "documents": documents,
         }

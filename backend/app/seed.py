@@ -1,8 +1,17 @@
+import gzip
+import json
 import os
 import secrets
+import sys
 
 from .core.database import init_db, get_db
 from .core.security import hash_password
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from ai_service import config as ai_config  # noqa: E402
+from ai_service.rag import _term_freq  # noqa: E402
+
+CONTENT_MARKER = "dataset/source_documents/%"
 
 COURSES = [
     ("AI101", "Trí tuệ nhân tạo", "Nhập môn AI: tìm kiếm, học máy, mạng nơ-ron."),
@@ -74,6 +83,63 @@ STUDENTS = [
 ]
 
 
+def _course_has_imported_content(db, course_id) -> bool:
+    row = db.execute(
+        "SELECT 1 FROM documents WHERE course_id = ? AND file_path LIKE ? LIMIT 1", (course_id, CONTENT_MARKER)
+    ).fetchone()
+    return row is not None
+
+
+def import_content_pack(db) -> dict:
+    """Nạp gói nội dung tài liệu thật (dataset/content_pack.json.gz) vào database, đúng một lần.
+    Đã nạp rồi (còn tài liệu mang đường dẫn dataset/source_documents) thì bỏ qua."""
+    pack_path = os.path.join(ai_config.DATASET_DIR, "content_pack.json.gz")
+    if not os.path.exists(pack_path):
+        return {"skipped": "chưa có content_pack.json.gz"}
+    if db.execute("SELECT 1 FROM documents WHERE file_path LIKE ? LIMIT 1", (CONTENT_MARKER,)).fetchone():
+        return {"skipped": "đã nạp trước đó"}
+
+    with gzip.open(pack_path, "rt", encoding="utf-8") as f:
+        pack = json.load(f)
+
+    n_docs = n_chunks = 0
+    for c in pack["courses"]:
+        row = db.execute("SELECT id FROM courses WHERE name = ?", (c["name"],)).fetchone()
+        if row:
+            course_id = row["id"]
+            # Bỏ chương/tài liệu giữ chỗ do seed tạo trước đó (chưa có nội dung) để thay bằng nội dung thật.
+            db.execute("DELETE FROM document_chunks WHERE document_id IN (SELECT id FROM documents WHERE course_id = ?)", (course_id,))
+            db.execute("DELETE FROM documents WHERE course_id = ?", (course_id,))
+            db.execute("DELETE FROM chapters WHERE course_id = ?", (course_id,))
+        else:
+            course_id = db.execute(
+                "INSERT INTO courses (code, name, description, status) VALUES (?, ?, ?, 'active')",
+                (c["code"], c["name"], c["description"]),
+            ).lastrowid
+
+        chapter_ids = {}
+        for ch in c["chapters"]:
+            chapter_ids[ch["name"]] = db.execute(
+                "INSERT INTO chapters (course_id, name, order_index) VALUES (?, ?, ?)",
+                (course_id, ch["name"], ch["order_index"]),
+            ).lastrowid
+        for d in c["documents"]:
+            doc_id = db.execute(
+                "INSERT INTO documents (course_id, chapter_id, title, file_type, file_path, status) "
+                "VALUES (?, ?, ?, ?, ?, 'active')",
+                (course_id, chapter_ids.get(d["chapter"]), d["title"], d["file_type"], d["file_path"]),
+            ).lastrowid
+            n_docs += 1
+            for idx, (page_hint, content) in enumerate(d["chunks"]):
+                db.execute(
+                    "INSERT INTO document_chunks (document_id, content, chunk_index, vector_embedding, page_hint) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (doc_id, content, idx, json.dumps(_term_freq(content)), page_hint),
+                )
+                n_chunks += 1
+    return {"documents": n_docs, "chunks": n_chunks}
+
+
 def run():
     init_db()
     admin_password = os.environ.get("EDUAI_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
@@ -112,6 +178,12 @@ def run():
                 course_id = existing["id"]
             course_ids[name] = course_id
 
+        stats = import_content_pack(db)
+        print(f"Nội dung tài liệu: {stats}")
+
+        for name, course_id in course_ids.items():
+            if _course_has_imported_content(db, course_id):
+                continue  # môn đã có chương/tài liệu thật, không thêm lại dữ liệu giữ chỗ
             for idx, chapter_name in enumerate(CHAPTERS.get(name, [])):
                 exists = db.execute(
                     "SELECT id FROM chapters WHERE course_id=? AND name=?", (course_id, chapter_name)
@@ -128,7 +200,7 @@ def run():
         for course_name, chapter_name, title, file_type in DOCUMENTS:
             course_id = course_ids.get(course_name)
             chapter_id = chapter_ids.get((course_name, chapter_name))
-            if course_id is None:
+            if course_id is None or _course_has_imported_content(db, course_id):
                 continue
             exists = db.execute(
                 "SELECT id FROM documents WHERE course_id=? AND title=?", (course_id, title)

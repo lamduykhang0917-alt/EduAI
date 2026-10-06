@@ -215,14 +215,15 @@ async function load() {
       <td>
         <div class="doc-name">
           <div class="doc-icon ${docType.cls}">${docType.icon}</div>
-          <span class="doc-title">${d.title}</span>
+          <a class="doc-title" href="document-view.html?id=${d.id}" style="color:inherit; text-decoration:none;">${d.title}</a>
         </div>
       </td>
       <td><span class="badge badge-purple">${course ? course.name : '—'}</span></td>
       <td><span class="badge badge-blue">${(d.file_type || '').toUpperCase() || '—'}</span></td>
       <td style="color:var(--text-muted); font-size:13px;">${d.updated_at ? d.updated_at.split(' ')[0] : '—'}</td>
       <td>
-        <button class="btn-ask" onclick="askAboutDoc('${d.title.replace(/'/g, '')}')">
+        <a class="btn-ask" href="document-view.html?id=${d.id}" style="text-decoration:none; margin-right:6px;">👁 Xem</a>
+        <button class="btn-ask" onclick='askAboutDoc(${JSON.stringify(d.title)})'>
           💬 Hỏi AI
         </button>
       </td>

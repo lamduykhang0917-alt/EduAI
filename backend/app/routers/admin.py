@@ -386,24 +386,23 @@ def get_ai_config(admin: dict = Depends(require_admin)):
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
     from ai_service import config as ai_config
 
+    from ai_service import llm_client
+
     provider = ai_config.LLM_PROVIDER
-    provider_labels = {
-        "claude": f"Claude ({ai_config.ANTHROPIC_MODEL})",
-        "gemini": f"Gemini ({ai_config.GEMINI_MODEL})",
-        "dataset": "KeywordIntentClassifier (dataset nội bộ)",
-    }
-    api_key_configured = True
-    if provider == "claude":
-        api_key_configured = bool(ai_config.ANTHROPIC_API_KEY)
-    elif provider == "gemini":
-        api_key_configured = bool(ai_config.GEMINI_API_KEY)
+    active = llm_client.available_providers()
+    labels = {"claude": f"Claude ({ai_config.ANTHROPIC_MODEL})", "gemini": f"Gemini ({ai_config.GEMINI_MODEL})"}
+    if provider == "dataset" or not active:
+        model_label = "Nội dung có sẵn (knowledge base + tài liệu môn học)"
+    else:
+        model_label = " → ".join(labels[n] for n in active)
+    api_key_configured = bool(active) if provider != "dataset" else True
 
     return {
         "llm_provider": provider,
-        "model": provider_labels.get(provider, provider),
+        "model": model_label,
         "api_key_configured": api_key_configured,
         "use_phobert": ai_config.USE_PHOBERT,
-        "fallback_mode": "KeywordIntentClassifier (dataset nội bộ)" if provider in ("claude", "gemini") else None,
+        "fallback_mode": "Nội dung có sẵn (dataset + tài liệu)" if active else None,
         "confidence_threshold": ai_config.CONFIDENCE_THRESHOLD,
         "status": "online",
         "dataset_files": {

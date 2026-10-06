@@ -1,11 +1,11 @@
 """
 llm_client.py
-Gọi API của nhà cung cấp LLM bên ngoài (Claude hoặc Gemini) để chatbot trả lời
-TỰ DO bất kỳ câu hỏi nào của sinh viên — không giới hạn trong dataset/knowledge base.
+Gọi API của nhà cung cấp LLM bên ngoài (Claude hoặc Gemini) để chatbot diễn đạt câu trả lời
+tự nhiên, dựa trên tài liệu môn học (RAG) và lịch sử hội thoại.
 
-Đây là điểm tích hợp DUY NHẤT cần sửa nếu muốn đổi nhà cung cấp AI khác (OpenAI,
-DeepSeek...) — chỉ cần viết thêm 1 hàm call_xxx() tương tự rồi thêm nhánh trong
-ask_llm(), không cần sửa inference.py hay bất kỳ router nào khác.
+Điểm tích hợp DUY NHẤT cần sửa nếu muốn đổi nhà cung cấp AI khác (OpenAI, DeepSeek...):
+viết thêm 1 hàm call_xxx() tương tự rồi thêm vào PROVIDERS, không cần sửa inference.py
+hay bất kỳ router nào khác.
 """
 
 import os
@@ -20,7 +20,10 @@ class LLMError(Exception):
     pass
 
 
-def _build_system_prompt(course: str = None, course_list=None) -> str:
+RETRYABLE = {429, 500, 502, 503, 504, 529}
+
+
+def _build_system_prompt(course: str = None, course_list=None, has_context: bool = False) -> str:
     system = config.LLM_SYSTEM_PROMPT
     if course_list:
         joined = ", ".join(course_list)
@@ -33,56 +36,90 @@ def _build_system_prompt(course: str = None, course_list=None) -> str:
         )
     if course:
         system += f" Sinh viên đang học môn: {course}."
+    if has_context:
+        system += (
+            " Câu hỏi đi kèm phần TÀI LIỆU THAM KHẢO trích từ giáo trình/slide của môn học. "
+            "Hãy ưu tiên dùng thông tin trong tài liệu đó làm căn cứ chính, diễn đạt lại cho dễ hiểu "
+            "(có thể dùng Markdown: danh sách, in đậm, khối code) và nêu tên tài liệu khi trích dẫn. "
+            "Nếu tài liệu không đủ để trả lời, hãy bổ sung bằng kiến thức chung và nói rõ phần nào "
+            "là kiến thức bổ sung ngoài tài liệu."
+        )
     return system
 
 
-def call_claude(question: str, course: str = None, course_list=None) -> str:
+def _compose_user_message(question: str, context: str = None) -> str:
+    if not context:
+        return question
+    return f"TÀI LIỆU THAM KHẢO:\n{context}\n\n---\nCÂU HỎI CỦA SINH VIÊN: {question}"
+
+
+def _merge_history(history, user_message: str, assistant_role: str) -> list:
+    """Ghép lịch sử + câu hỏi mới thành danh sách lượt thoại xen kẽ user/assistant (API yêu cầu xen kẽ)."""
+    turns = []
+    for h in (history or []):
+        role = "user" if h.get("role") == "user" else assistant_role
+        text = (h.get("content") or "").strip()
+        if not text:
+            continue
+        if turns and turns[-1]["role"] == role:
+            turns[-1]["text"] += "\n" + text
+        else:
+            turns.append({"role": role, "text": text})
+    while turns and turns[0]["role"] != "user":
+        turns.pop(0)
+    if turns and turns[-1]["role"] == "user":
+        turns[-1]["text"] += "\n" + user_message
+    else:
+        turns.append({"role": "user", "text": user_message})
+    return turns
+
+
+def call_claude(question: str, course=None, course_list=None, context=None, history=None) -> str:
     if not config.ANTHROPIC_API_KEY:
-        raise LLMError(
-            "Chưa cấu hình ANTHROPIC_API_KEY. Xem hướng dẫn trong ai_service/config.py "
-            "hoặc file backend/.env.example."
-        )
+        raise LLMError("Chưa cấu hình ANTHROPIC_API_KEY.")
 
-    try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": config.ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": config.ANTHROPIC_MODEL,
-                "max_tokens": 1024,
-                "system": _build_system_prompt(course, course_list),
-                "messages": [{"role": "user", "content": question}],
-            },
-            timeout=30,
-        )
-    except requests.RequestException as e:
-        raise LLMError(f"Không thể kết nối tới Claude API: {e}")
-
-    if resp.status_code != 200:
-        raise LLMError(f"Claude API trả về lỗi ({resp.status_code}): {resp.text[:300]}")
-
-    data = resp.json()
-    parts = [b["text"] for b in data.get("content", []) if b.get("type") == "text"]
-    answer = "\n".join(parts).strip()
-    if not answer:
-        raise LLMError("Claude API trả về nội dung rỗng")
-    return answer
-
-
-def call_gemini(question: str, course: str = None, course_list=None) -> str:
-    if not config.GEMINI_API_KEY:
-        raise LLMError(
-            "Chưa cấu hình GEMINI_API_KEY. Xem hướng dẫn trong ai_service/config.py "
-            "hoặc file backend/.env.example."
-        )
-
+    turns = _merge_history(history, _compose_user_message(question, context), "assistant")
     payload = {
-        "system_instruction": {"parts": [{"text": _build_system_prompt(course, course_list)}]},
-        "contents": [{"role": "user", "parts": [{"text": question}]}],
+        "model": config.ANTHROPIC_MODEL,
+        "max_tokens": 1200,
+        "system": _build_system_prompt(course, course_list, bool(context)),
+        "messages": [{"role": t["role"], "content": t["text"]} for t in turns],
+    }
+    headers = {
+        "x-api-key": config.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+
+    last_error = "Không rõ nguyên nhân"
+    for attempt in range(1, 3):
+        try:
+            resp = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=40)
+        except requests.RequestException as e:
+            last_error = f"Không thể kết nối tới Claude API: {e}"
+        else:
+            if resp.status_code == 200:
+                data = resp.json()
+                answer = "\n".join(b["text"] for b in data.get("content", []) if b.get("type") == "text").strip()
+                if not answer:
+                    raise LLMError("Claude API trả về nội dung rỗng")
+                return answer
+            last_error = f"Claude API trả về lỗi ({resp.status_code}): {resp.text[:300]}"
+            if resp.status_code not in RETRYABLE:
+                raise LLMError(last_error)
+        if attempt < 2:
+            time.sleep(1.5)
+    raise LLMError(last_error)
+
+
+def call_gemini(question: str, course=None, course_list=None, context=None, history=None) -> str:
+    if not config.GEMINI_API_KEY:
+        raise LLMError("Chưa cấu hình GEMINI_API_KEY.")
+
+    turns = _merge_history(history, _compose_user_message(question, context), "model")
+    payload = {
+        "system_instruction": {"parts": [{"text": _build_system_prompt(course, course_list, bool(context))}]},
+        "contents": [{"role": t["role"], "parts": [{"text": t["text"]}]} for t in turns],
     }
 
     # Gemini hay báo quá tải tạm thời (503/429): tự thử lại vài lần, và nếu có cấu hình
@@ -92,7 +129,6 @@ def call_gemini(question: str, course: str = None, course_list=None) -> str:
     if fallback and fallback != config.GEMINI_MODEL:
         models.append(fallback)
 
-    retryable = {429, 500, 502, 503, 504}
     attempts_per_model = 3
     last_error = "Không rõ nguyên nhân"
     resp = None
@@ -112,7 +148,7 @@ def call_gemini(question: str, course: str = None, course_list=None) -> str:
                 if resp.status_code == 200:
                     break
                 last_error = f"Gemini API trả về lỗi ({resp.status_code}): {resp.text[:300]}"
-                if resp.status_code not in retryable:
+                if resp.status_code not in RETRYABLE:
                     raise LLMError(last_error)
                 resp = None
             if attempt < attempts_per_model:
@@ -130,10 +166,28 @@ def call_gemini(question: str, course: str = None, course_list=None) -> str:
         raise LLMError("Gemini API trả về dữ liệu không đúng định dạng mong đợi")
 
 
-def ask_llm(question: str, course: str = None, course_list=None) -> str:
-    """Điểm gọi chung — tự động chọn nhà cung cấp theo config.LLM_PROVIDER."""
-    if config.LLM_PROVIDER == "claude":
-        return call_claude(question, course, course_list)
-    if config.LLM_PROVIDER == "gemini":
-        return call_gemini(question, course, course_list)
-    raise LLMError(f"LLM_PROVIDER không hợp lệ: '{config.LLM_PROVIDER}' (chỉ nhận 'claude' hoặc 'gemini')")
+PROVIDERS = {"claude": call_claude, "gemini": call_gemini}
+
+
+def available_providers() -> list:
+    """Danh sách nhà cung cấp sẽ được thử (theo thứ tự), dựa trên LLM_PROVIDER và API key đã cấu hình."""
+    keys = {"claude": bool(config.ANTHROPIC_API_KEY), "gemini": bool(config.GEMINI_API_KEY)}
+    if config.LLM_PROVIDER == "auto":
+        return [name for name in ("claude", "gemini") if keys[name]]
+    if config.LLM_PROVIDER in PROVIDERS:
+        return [config.LLM_PROVIDER] if keys[config.LLM_PROVIDER] else []
+    return []
+
+
+def ask_llm(question: str, course=None, course_list=None, context=None, history=None) -> str:
+    """Điểm gọi chung — thử lần lượt các nhà cung cấp khả dụng, nhà nào lỗi thì chuyển sang nhà kế tiếp."""
+    providers = available_providers()
+    if not providers:
+        raise LLMError("Chưa cấu hình API key cho Claude hoặc Gemini.")
+    errors = []
+    for name in providers:
+        try:
+            return PROVIDERS[name](question, course, course_list, context, history)
+        except LLMError as e:
+            errors.append(f"{name}: {e}")
+    raise LLMError(" | ".join(errors))

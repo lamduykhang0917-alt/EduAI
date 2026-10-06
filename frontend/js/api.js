@@ -18,11 +18,23 @@ const Api = {
     const headers = { "Content-Type": "application/json" };
     if (auth && this.token()) headers["Authorization"] = `Bearer ${this.token()}`;
 
-    const res = await fetch(`${API_BASE}${path}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    // Server miễn phí có thể vừa thức dậy hoặc vừa khởi động lại: tự gửi lại khi lỗi kết nối.
+    let res;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        res = await fetch(`${API_BASE}${path}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        break;
+      } catch (err) {
+        if (attempt === 3) {
+          throw new Error("Không kết nối được máy chủ. Vui lòng thử lại sau ít phút.");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+      }
+    }
 
     if (res.status === 401) {
       this.clearToken();
@@ -54,6 +66,8 @@ const Api = {
     return this.request("/api/chat", { method: "POST", body: { message, session_id, course, level } });
   },
   chatSessions() { return this.request("/api/chat/history"); },
+  deleteChat(id) { return this.request(`/api/chat/history/${id}`, { method: "DELETE" }); },
+  deleteAllChats() { return this.request("/api/chat/history", { method: "DELETE" }); },
   chatMessages(session_id) { return this.request(`/api/chat/history?session_id=${session_id}`); },
 
   agentChat(message, session_id = null, course = null) {
@@ -71,6 +85,8 @@ const Api = {
     return this.request(`/api/documents${qs ? "?" + qs : ""}`);
   },
 
+  quizMeta() { return this.request("/api/quizzes/meta"); },
+  documentContent(id) { return this.request(`/api/documents/${id}/content`); },
   generateQuiz(course, num_questions, difficulty, chapter) {
     return this.request("/api/quizzes/generate", {
       method: "POST",

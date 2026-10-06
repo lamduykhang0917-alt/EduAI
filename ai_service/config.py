@@ -53,13 +53,17 @@ DATASET_DIR = os.path.join(BASE_DIR, "dataset")
 INTENTS_FILE = os.path.join(DATASET_DIR, "intents.json")
 KNOWLEDGE_FILE = os.path.join(DATASET_DIR, "knowledge.json")
 QUIZ_FILE = os.path.join(DATASET_DIR, "quiz.json")
+QUIZ_EXTRA_FILE = os.path.join(DATASET_DIR, "quiz_extra.json")  # câu hỏi bổ sung (không sửa quiz.json gốc)
 
 # ==== Chế độ trả lời của chatbot ====
-# "claude" | "gemini" | "dataset"
-LLM_PROVIDER = os.environ.get("EDUAI_LLM_PROVIDER", "claude")
+# "auto"    : tự chọn — dùng Claude nếu có ANTHROPIC_API_KEY, rồi tới Gemini nếu có GEMINI_API_KEY,
+#             lỗi/hết lượt thì tự chuyển sang nhà cung cấp kế tiếp, cuối cùng rơi về nội dung có sẵn (khuyên dùng)
+# "claude" | "gemini": chỉ dùng đúng nhà cung cấp đó (lỗi thì rơi về nội dung có sẵn)
+# "dataset" : chỉ dùng nội dung có sẵn (knowledge base + tài liệu môn học), không gọi AI ngoài
+LLM_PROVIDER = os.environ.get("EDUAI_LLM_PROVIDER", "auto")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # gemini-3.1-flash-lite: bản ổn định (GA) hiện hành tại thời điểm viết code này,

@@ -5,11 +5,23 @@
 <title>Chi tiết môn học — EduAI</title>
 <link rel="stylesheet" href="../css/style.css">
 <style>
-  .chapter-item, .doc-item {
-    display:flex; justify-content:space-between; align-items:center;
-    padding: 12px 14px; border:1px solid var(--border-subtle); border-radius: var(--radius-sm);
-    margin-bottom: 8px; font-size: 14px;
-  }
+  .chapter-item { border:1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 14px; background:#fff; transition: border-color .15s, box-shadow .15s; }
+  .chapter-item:hover { border-color: var(--indigo-500); }
+  .chapter-item.open { border-color: var(--indigo-500); box-shadow: 0 2px 10px rgba(79,70,229,.10); }
+  .chapter-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding: 12px 14px; cursor:pointer; user-select:none; }
+  .chapter-head .name { font-weight:600; }
+  .chapter-head .meta { display:flex; align-items:center; gap:8px; color:var(--text-muted); font-size:12px; white-space:nowrap; }
+  .chapter-head .arrow { transition: transform .15s; }
+  .chapter-item.open .arrow { transform: rotate(90deg); }
+  .chapter-body { display:none; padding: 4px 14px 14px; border-top:1px dashed var(--border-subtle); }
+  .chapter-item.open .chapter-body { display:block; }
+  .chapter-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chapter-actions .btn { padding:7px 12px; font-size:13px; }
+  .doc-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding: 10px 12px; border:1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-top:8px; font-size: 14px; color:inherit; text-decoration:none; background:#fff; }
+  a.doc-item:hover { border-color: var(--indigo-500); background: var(--indigo-50); }
+  .doc-item .t { overflow:hidden; text-overflow:ellipsis; }
+  .muted-note { color:var(--text-muted); font-size:13px; padding:8px 0; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr !important; } }
 </style>
 </head>
 <body>
@@ -49,7 +61,7 @@
       <button class="btn btn-primary" id="askAiBtn">💬 Hỏi AI về môn học này</button>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+    <div class="grid two-col" style="grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
       <div class="card">
         <h3 style="margin-top:0;">Danh sách chương</h3>
         <div id="chapterList"></div>
@@ -66,21 +78,65 @@
 requireAuth();
 const id = new URLSearchParams(window.location.search).get("id");
 
+function esc(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+let courseName = "";
+let docsById = {};
+
+function docLink(d) {
+  const empty = d.chunk_count === 0;
+  return `<a class="doc-item" href="document-view.html?id=${d.id}">
+    <span class="t">📄 ${esc(d.title)}</span>
+    <span class="badge ${empty ? 'badge-amber' : 'badge-blue'}">${empty ? 'chưa có nội dung' : esc((d.file_type || '').toUpperCase())}</span>
+  </a>`;
+}
+
+function toggleChapter(el) { el.closest(".chapter-item").classList.toggle("open"); }
+
+function askChapter(name) {
+  window.location.href = `chatbot.html?course=${encodeURIComponent(courseName)}&q=${encodeURIComponent("Tóm tắt nội dung: " + name)}`;
+}
+
+function quizCourse() {
+  window.location.href = `quiz-list.html?course=${encodeURIComponent(courseName)}`;
+}
+
 async function load() {
   const data = await Api.course(id);
-  document.getElementById("courseTitle").textContent = data.course.name;
+  courseName = data.course.name;
+  document.getElementById("courseTitle").textContent = courseName;
   document.getElementById("courseDesc").textContent = data.course.description || "";
   document.getElementById("askAiBtn").onclick = () => {
-    window.location.href = `chatbot.html?course=${encodeURIComponent(data.course.name)}`;
+    window.location.href = `chatbot.html?course=${encodeURIComponent(courseName)}`;
   };
+  data.documents.forEach(d => { docsById[d.id] = d; });
 
   document.getElementById("chapterList").innerHTML = data.chapters.length
-    ? data.chapters.map(c => `<div class="chapter-item"><span>${c.name}</span></div>`).join("")
-    : `<div style="color:var(--text-muted); font-size:14px;">Chưa có chương nào.</div>`;
+    ? data.chapters.map((c, i) => {
+        const docs = (c.document_ids || []).map(x => docsById[x]).filter(Boolean);
+        return `<div class="chapter-item" id="ch${c.id}">
+          <div class="chapter-head" onclick="toggleChapter(this)">
+            <span class="name">${esc(c.name)}</span>
+            <span class="meta">${docs.length ? docs.length + " tài liệu" : "Chưa có tài liệu"} <span class="arrow">▸</span></span>
+          </div>
+          <div class="chapter-body">
+            ${docs.length ? docs.map(docLink).join("") : `<div class="muted-note">Chương này chưa có tài liệu. Bạn vẫn có thể hỏi AI về nội dung chương.</div>`}
+            <div class="chapter-actions">
+              <button class="btn btn-primary" onclick='askChapter(${JSON.stringify(c.name)})'>💬 Hỏi AI về chương này</button>
+              <button class="btn btn-secondary" onclick="quizCourse()">📝 Làm câu hỏi ôn tập</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("")
+    : `<div class="muted-note">Chưa có chương nào.</div>`;
+
+  // Mở sẵn chương đầu tiên để người dùng thấy ngay cách dùng
+  const first = document.querySelector(".chapter-item");
+  if (first) first.classList.add("open");
 
   document.getElementById("docList").innerHTML = data.documents.length
-    ? data.documents.map(d => `<div class="doc-item"><span>${d.title}</span><span class="badge badge-blue">${d.file_type}</span></div>`).join("")
-    : `<div style="color:var(--text-muted); font-size:14px;">Chưa có tài liệu nào cho môn học này.</div>`;
+    ? data.documents.map(docLink).join("")
+    : `<div class="muted-note">Môn học này chưa có tài liệu. Bạn vẫn có thể bấm "Hỏi AI về môn học này" để tra cứu kiến thức có sẵn.</div>`;
 }
 load();
 </script>

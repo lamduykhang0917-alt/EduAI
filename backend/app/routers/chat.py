@@ -31,6 +31,14 @@ def chat(payload: ChatRequest, user: dict = Depends(get_current_user)):
             )
             session_id = cur.lastrowid
 
+        # Lấy vài lượt trò chuyện gần nhất (trước tin nhắn mới) để AI hiểu các câu hỏi nối tiếp.
+        recent = db.execute(
+            "SELECT sender, content FROM chat_messages WHERE session_id = ? ORDER BY id DESC LIMIT 6",
+            (session_id,),
+        ).fetchall()
+        history = [{"role": "user" if r["sender"] == "user" else "assistant", "content": r["content"]}
+                   for r in reversed(recent)]
+
         db.execute(
             "INSERT INTO chat_messages (session_id, sender, content) VALUES (?, 'user', ?)",
             (session_id, payload.message),
@@ -39,7 +47,7 @@ def chat(payload: ChatRequest, user: dict = Depends(get_current_user)):
         course_rows = db.execute("SELECT name FROM courses WHERE status = 'active'").fetchall()
         course_list = [r["name"] for r in course_rows]
 
-    result = generate_response(payload.message, course=payload.course, level=payload.level or "basic", course_list=course_list)
+    result = generate_response(payload.message, course=payload.course, level=payload.level or "basic", course_list=course_list, history=history)
 
     with get_db() as db:
         db.execute(
@@ -79,6 +87,26 @@ def chat_history(session_id: Optional[int] = None, user: dict = Depends(get_curr
         return [dict(s) for s in sessions]
 
 
+def _delete_sessions(db, user_id: int, session_ids: list):
+    """Xóa các cuộc trò chuyện (và tin nhắn, phản hồi liên quan) của đúng người dùng này."""
+    for sid in session_ids:
+        db.execute(
+            "DELETE FROM chat_feedback WHERE message_id IN (SELECT id FROM chat_messages WHERE session_id = ?)",
+            (sid,),
+        )
+        db.execute("DELETE FROM chat_messages WHERE session_id = ?", (sid,))
+        db.execute("DELETE FROM chat_sessions WHERE id = ? AND user_id = ?", (sid, user_id))
+
+
+@router.delete("/history")
+def delete_all_history(user: dict = Depends(get_current_user)):
+    with get_db() as db:
+        ids = [r["id"] for r in db.execute(
+            "SELECT id FROM chat_sessions WHERE user_id = ?", (user["id"],)).fetchall()]
+        _delete_sessions(db, user["id"], ids)
+    return {"message": "Đã xóa toàn bộ lịch sử trò chuyện", "deleted": len(ids)}
+
+
 @router.delete("/history/{session_id}")
 def delete_history(session_id: int, user: dict = Depends(get_current_user)):
     with get_db() as db:
@@ -87,6 +115,5 @@ def delete_history(session_id: int, user: dict = Depends(get_current_user)):
         ).fetchone()
         if owner is None or owner["user_id"] != user["id"]:
             raise HTTPException(404, "Không tìm thấy cuộc trò chuyện")
-        db.execute("DELETE FROM chat_messages WHERE session_id = ?", (session_id,))
-        db.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
+        _delete_sessions(db, user["id"], [session_id])
     return {"message": "Đã xóa cuộc trò chuyện"}
