@@ -82,7 +82,7 @@ async function load() {
     ? results.map(r => `
       <tr style="border-top:1px solid var(--border-subtle);">
         <td style="padding:10px 0;">${r.course_name || "—"}</td>
-        <td>${r.difficulty}</td>
+        <td>${({level1:"Mức 1",level2:"Mức 2",level3:"Mức 3",basic:"Cơ bản",medium:"Trung bình",advanced:"Nâng cao",mixed:"Hỗn hợp"})[r.difficulty] || r.difficulty}</td>
         <td style="font-weight:600;">${r.score}/10</td>
         <td>${r.submitted_at ? r.submitted_at.split(" ")[0] : "—"}</td>
       </tr>`).join("")

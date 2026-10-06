@@ -183,28 +183,38 @@ def import_authored_documents(db) -> int:
     return added
 
 
+def _insert_question(db, q) -> bool:
+    course = db.execute("SELECT id FROM courses WHERE name = ?", (q["course"],)).fetchone()
+    if not course:
+        return False
+    if db.execute("SELECT 1 FROM questions WHERE course_id = ? AND content = ?", (course["id"], q["content"])).fetchone():
+        return False
+    chapter = db.execute("SELECT id FROM chapters WHERE course_id = ? AND name = ?", (course["id"], q.get("chapter"))).fetchone()
+    qid = db.execute(
+        "INSERT INTO questions (course_id, chapter_id, content, difficulty, explanation) VALUES (?, ?, ?, ?, ?)",
+        (course["id"], chapter["id"] if chapter else None, q["content"], q["difficulty"], q.get("explanation", "")),
+    ).lastrowid
+    for key, text in q["options"].items():
+        db.execute(
+            "INSERT INTO answers (question_id, option_key, option_text, is_correct) VALUES (?, ?, ?, ?)",
+            (qid, key, text, 1 if key == q["correct_answer"] else 0),
+        )
+    return True
+
+
 def import_question_bank(db) -> int:
-    """Nạp ngân hàng câu hỏi từ dataset vào database đúng một lần (sau đó admin tự quản lý trong database)."""
-    if _flag(db, "question_bank_imported"):
-        return 0
-    from ai_service.question_bank import load_all_questions
+    """Nạp ngân hàng câu hỏi vào database. Mỗi nguồn (bộ gốc, từng gói qpack_N) chỉ nạp đúng một lần;
+    sau đó admin tự quản lý trong database nên câu đã xóa sẽ không xuất hiện lại."""
+    from ai_service.question_bank import load_all_questions, load_pack_questions
     n = 0
-    for q in load_all_questions():
-        course = db.execute("SELECT id FROM courses WHERE name = ?", (q["course"],)).fetchone()
-        if not course:
+    if not _flag(db, "question_bank_imported"):
+        n += sum(_insert_question(db, q) for q in load_all_questions())
+        _set_flag(db, "question_bank_imported")
+    for name, questions in load_pack_questions().items():
+        if _flag(db, f"question_pack_{name}"):
             continue
-        chapter = db.execute("SELECT id FROM chapters WHERE course_id = ? AND name = ?", (course["id"], q.get("chapter"))).fetchone()
-        qid = db.execute(
-            "INSERT INTO questions (course_id, chapter_id, content, difficulty, explanation) VALUES (?, ?, ?, ?, ?)",
-            (course["id"], chapter["id"] if chapter else None, q["content"], q["difficulty"], q.get("explanation", "")),
-        ).lastrowid
-        for key, text in q["options"].items():
-            db.execute(
-                "INSERT INTO answers (question_id, option_key, option_text, is_correct) VALUES (?, ?, ?, ?)",
-                (qid, key, text, 1 if key == q["correct_answer"] else 0),
-            )
-        n += 1
-    _set_flag(db, "question_bank_imported")
+        n += sum(_insert_question(db, q) for q in questions)
+        _set_flag(db, f"question_pack_{name}")
     return n
 
 

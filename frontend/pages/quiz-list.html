@@ -13,8 +13,9 @@
   .form-grid { display:grid; grid-template-columns: 1.6fr 1fr; gap:18px; }
   @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
   .avail { margin-top:14px; font-size:13.5px; color:var(--text-secondary); background:var(--indigo-50); border:1px solid var(--indigo-100); padding:10px 14px; border-radius:10px; }
-  .difficulty-options { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px; }
+  .difficulty-options { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
   .diff-chip { text-align:center; padding:16px 10px; border:1.5px solid var(--border-subtle); border-radius:14px; font-size:14.5px; font-weight:600; cursor:pointer; background:#fff; transition:all .15s; }
+  .diff-chip.disabled { opacity:.45; cursor:not-allowed; }
   .diff-chip:hover { border-color:var(--indigo-400); }
   .diff-chip.selected { border-color: var(--indigo-600); background:var(--indigo-50); color:var(--indigo-700); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .gen-btn { margin-top:28px; width:100%; justify-content:center; padding:15px; font-size:16px; border-radius:14px; }
@@ -58,7 +59,7 @@
     <section class="page-hero" style="background:linear-gradient(120deg,#0f766e 0%,#2563eb 70%,#4f46e5 120%);">
       <div class="copy">
         <h2>Ôn tập & Kiểm tra</h2>
-        <p>Chọn môn, độ khó và số câu. Mỗi lần tạo là một bộ câu hỏi khác nhau, có giải thích đáp án sau khi nộp bài.</p>
+        <p>Chọn môn và 3 mức độ: đơn giản, khó, hoặc hỗn hợp, mỗi đề tối đa 40 câu. Mỗi lần tạo là một bộ câu hỏi khác nhau, có giải thích đáp án sau khi nộp bài.</p>
       </div>
       <div class="hero-art">📝</div>
     </section>
@@ -106,39 +107,44 @@
 <script src="../js/api.js"></script>
 <script>
 requireRole("STUDENT");
-let selectedDifficulty = "";
+let selectedDifficulty = "level1";
 let quizMeta = {};
-const DIFF_LABELS = { basic: "Cơ bản", medium: "Trung bình", advanced: "Nâng cao" };
+const DIFF_LABELS = { basic: "Cơ bản", medium: "Trung bình", advanced: "Nâng cao", level1: "Mức 1 · Đơn giản", level2: "Mức 2 · Khó", level3: "Mức 3 · Hỗn hợp", mixed: "Hỗn hợp" };
+const LEVELS = [
+  { val: "level1", icon: "🌱", title: "Mức 1", name: "Đơn giản", desc: "Khái niệm và kiến thức nền tảng" },
+  { val: "level2", icon: "🔥", title: "Mức 2", name: "Khó", desc: "Áp dụng, tính toán, tình huống" },
+  { val: "level3", icon: "🎲", title: "Mức 3", name: "Hỗn hợp", desc: "Dễ và khó trộn lẫn, thứ tự lộn xộn" },
+];
 
 function renderCourseOptions() {
   const course = document.getElementById("courseSelect").value;
-  const m = quizMeta[course] || { total: 0, basic: 0, medium: 0, advanced: 0 };
-
-  // Độ khó: chỉ hiện mức nào thật sự có câu hỏi
-  const chips = [{ val: "", label: "Hỗn hợp", count: m.total }]
-    .concat(["basic", "medium", "advanced"].filter(k => m[k] > 0).map(k => ({ val: k, label: DIFF_LABELS[k], count: m[k] })));
-  if (!chips.some(c => c.val === selectedDifficulty)) selectedDifficulty = "";
+  const m = quizMeta[course] || { level1: 0, level2: 0, level3: 0 };
   const box = document.getElementById("diffOptions");
-  box.innerHTML = chips.map(c =>
-    `<div class="diff-chip ${c.val === selectedDifficulty ? "selected" : ""}" data-val="${c.val}">${c.label} <span style="opacity:.6">(${c.count})</span></div>`).join("");
-  box.querySelectorAll(".diff-chip").forEach(chip => chip.addEventListener("click", () => {
+  box.innerHTML = LEVELS.map(l => {
+    const n = m[l.val] || 0;
+    return `<div class="diff-chip ${l.val === selectedDifficulty ? "selected" : ""} ${n ? "" : "disabled"}" data-val="${l.val}">
+      <div style="font-size:26px;">${l.icon}</div>
+      <div style="font-weight:800; font-size:16px; margin-top:4px;">${l.title} · ${l.name}</div>
+      <div style="font-size:12.5px; font-weight:500; color:var(--text-secondary); margin:4px 0 8px;">${l.desc}</div>
+      <div style="font-size:12.5px; color:var(--indigo-700);">Đề tối đa ${Math.min(40, n)} câu · kho ${n} câu</div></div>`;
+  }).join("");
+  box.querySelectorAll(".diff-chip:not(.disabled)").forEach(chip => chip.addEventListener("click", () => {
     selectedDifficulty = chip.dataset.val;
     renderCourseOptions();
   }));
 
-  // Số câu: chỉ cho chọn tối đa số câu có sẵn
-  const avail = (chips.find(c => c.val === selectedDifficulty) || chips[0]).count;
+  const avail = m[selectedDifficulty] || 0;
   const sel = document.getElementById("numQuestions");
-  const prev = parseInt(sel.value) || 10;
-  const opts = [3, 5, 10, 15, 20].filter(n => n < avail);
-  if (avail > 0) opts.push(avail);
-  sel.innerHTML = opts.map(n => `<option value="${n}">${n === avail && !([3,5,10,15,20].includes(n)) ? n + " (tối đa)" : n}</option>`).join("");
-  const keep = opts.includes(prev) ? prev : (opts.includes(10) ? 10 : opts[opts.length - 1]);
-  if (keep !== undefined) sel.value = String(keep);
+  const prev = parseInt(sel.value) || 40;
+  const opts = [10, 20, 30, 40].filter(n => n < avail && n <= 40);
+  if (avail > 0) opts.push(Math.min(avail, 40));
+  const uniq = [...new Set(opts)];
+  sel.innerHTML = uniq.map(n => `<option value="${n}">${n}${n === Math.min(avail, 40) ? " (tối đa)" : ""}</option>`).join("");
+  sel.value = String(uniq.includes(prev) ? prev : uniq[uniq.length - 1]);
 
   document.getElementById("availInfo").textContent = avail
-    ? `Ngân hàng câu hỏi có ${avail} câu phù hợp. Mỗi lần tạo sẽ chọn ngẫu nhiên các câu khác nhau.`
-    : "Môn học này chưa có câu hỏi ôn tập.";
+    ? `Kho có ${avail} câu phù hợp. Mỗi lần tạo sẽ chọn ngẫu nhiên các câu khác nhau.` + (avail < 40 ? " Muốn đủ 40 câu, hãy chọn “Tất cả môn học”." : "")
+    : "Lựa chọn này chưa có câu hỏi.";
   document.getElementById("genBtn").disabled = avail === 0;
 }
 
@@ -146,6 +152,7 @@ async function init() {
   const [courses, meta] = await Promise.all([Api.courses(), Api.quizMeta()]);
   quizMeta = meta;
   const sel = document.getElementById("courseSelect");
+  sel.innerHTML = '<option value="__all__">Tất cả môn học</option>';
   const wanted = new URLSearchParams(window.location.search).get("course");
   courses.filter(c => (meta[c.name] || {}).total > 0).forEach(c => {
     const opt = document.createElement("option");
@@ -178,7 +185,7 @@ async function generate() {
   btn.textContent = "Đang tạo...";
 
   try {
-    const data = await Api.generateQuiz(course, num_questions, selectedDifficulty || undefined);
+    const data = await Api.generateQuiz(course, num_questions, selectedDifficulty);
     sessionStorage.setItem("eduai_current_quiz", JSON.stringify(data));
     window.location.href = "quiz-take.html";
   } catch (err) {

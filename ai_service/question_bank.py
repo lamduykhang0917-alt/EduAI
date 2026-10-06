@@ -60,6 +60,13 @@ def _questions_from_knowledge():
 
 
 
+def load_pack_questions():
+    """Các gói câu hỏi bổ sung dataset/qpack_*.json -> {tên gói: [câu hỏi]} (mỗi gói nạp vào DB một lần)."""
+    import glob
+    base = os.path.dirname(ai_config.QUIZ_FILE)
+    return {os.path.basename(p)[:-5]: _read_questions(p) for p in sorted(glob.glob(os.path.join(base, "qpack_*.json")))}
+
+
 def load_all_questions():
     """quiz.json (gốc) + quiz_extra.json (bổ sung) + câu hỏi sinh từ knowledge base."""
     return _read_questions(ai_config.QUIZ_FILE) + _read_questions(ai_config.QUIZ_EXTRA_FILE) + _questions_from_knowledge()

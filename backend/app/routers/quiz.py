@@ -48,11 +48,22 @@ def _db_questions(db, course=None, chapter=None, difficulty=None):
     return result
 
 
+ALL_COURSES = "__all__"
+HARD = ("medium", "advanced")
+
+
+def _split_levels(bank):
+    easy = [q for q in bank if q["difficulty"] == "basic"]
+    hard = [q for q in bank if q["difficulty"] in HARD]
+    return easy, hard
+
+
 class GenerateQuizRequest(BaseModel):
-    course: str
+    course: Optional[str] = None  # bỏ trống hoặc "__all__" = tất cả môn học
     chapter: Optional[str] = None
     num_questions: int = 5
-    difficulty: Optional[str] = None  # basic | medium | advanced
+    difficulty: Optional[str] = None
+    # level1 (đơn giản) | level2 (khó) | level3 (trộn dễ-khó) | basic | medium | advanced
 
 
 class SubmitQuizRequest(BaseModel):
@@ -76,27 +87,53 @@ def quiz_meta(user: dict = Depends(get_current_user)):
     meta = {}
     with get_db() as db:
         bank = _db_questions(db)
-    for q in bank:
-        m = meta.setdefault(q["course"], {"total": 0, "basic": 0, "medium": 0, "advanced": 0})
+
+    def add(key, q):
+        m = meta.setdefault(key, {"total": 0, "basic": 0, "medium": 0, "advanced": 0})
         m["total"] += 1
         if q["difficulty"] in m:
             m[q["difficulty"]] += 1
+
+    for q in bank:
+        add(q["course"], q)
+        add(ALL_COURSES, q)
+    for m in meta.values():
+        m["level1"] = m["basic"]
+        m["level2"] = m["medium"] + m["advanced"]
+        m["level3"] = m["total"]
     return meta
 
 
 @router.post("/generate")
 def generate_quiz(payload: GenerateQuizRequest, user: dict = Depends(get_current_user)):
     with get_db() as db:
-        filtered = _db_questions(db, payload.course, payload.chapter, payload.difficulty)
+        course = None if payload.course in (None, "", ALL_COURSES) else payload.course
+        diff = payload.difficulty
+        legacy = diff if diff in ("basic", "medium", "advanced") else None
+        filtered = _db_questions(db, course, payload.chapter, legacy)
 
+    easy, hard = _split_levels(filtered)
+    if diff == "level1":
+        filtered = easy
+    elif diff == "level2":
+        filtered = hard
     if not filtered:
         raise HTTPException(404, "Chưa có câu hỏi phù hợp cho lựa chọn này trong ngân hàng câu hỏi")
 
     wanted = max(1, min(payload.num_questions, 50))
-    selected = random.sample(filtered, min(wanted, len(filtered)))
+    if diff == "level3" and easy and hard:
+        # Mức 3: trộn lẫn câu dễ và khó, thứ tự lộn xộn
+        n = min(wanted, len(filtered))
+        n_easy = min(len(easy), n // 2)
+        n_hard = min(len(hard), n - n_easy)
+        n_easy = min(len(easy), n - n_hard)
+        selected = random.sample(easy, n_easy) + random.sample(hard, n_hard)
+        random.shuffle(selected)
+    else:
+        selected = random.sample(filtered, min(wanted, len(filtered)))
 
     with get_db() as db:
-        course_row = db.execute("SELECT id FROM courses WHERE name = ?", (payload.course,)).fetchone()
+        course_row = db.execute("SELECT id FROM courses WHERE name = ?", (course or "",)).fetchone()
         course_id = course_row["id"] if course_row else None
         cur = db.execute(
             "INSERT INTO quizzes (user_id, course_id, num_questions, difficulty) VALUES (?, ?, ?, ?)",
