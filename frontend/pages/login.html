@@ -36,7 +36,7 @@
           <div class="a-input"><input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required autocomplete="current-password">
             <button type="button" class="eye" onclick="togglePw('password',this)" aria-label="Hiện mật khẩu">👁️</button></div></div>
         <div class="a-row"><label><input type="checkbox" id="rememberMe"> Ghi nhớ đăng nhập</label>
-          <a href="#" onclick="alert('Vui lòng liên hệ quản trị viên để đặt lại mật khẩu.');return false;">Quên mật khẩu?</a></div>
+          <a href="forgot-password.html">Quên mật khẩu?</a></div>
         <button type="submit" class="a-btn" id="submitBtn">Đăng nhập</button>
       </form>
       <div class="a-switch">Chưa có tài khoản?<a class="alt" href="register.html">Đăng ký miễn phí</a></div>
@@ -56,13 +56,20 @@
 function togglePw(id, btn){ const i=document.getElementById(id); const show=i.type==='password'; i.type=show?'text':'password'; btn.textContent=show?'🙈':'👁️'; }
 </script>
 <script>
+try {
+  const saved = localStorage.getItem('eduai_remember_email');
+  if (saved) { document.getElementById('email').value = saved; document.getElementById('rememberMe').checked = true; }
+} catch (e) {}
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errBox=document.getElementById('errBox'), btn=document.getElementById('submitBtn');
   errBox.style.display='none'; btn.disabled=true; btn.textContent='Đang đăng nhập...';
   try {
-    const data = await Api.login(document.getElementById('email').value.trim(), document.getElementById('password').value);
-    Api.setToken(data.access_token);
+    const email = document.getElementById('email').value.trim();
+    const remember = document.getElementById('rememberMe').checked;
+    const data = await Api.login(email, document.getElementById('password').value, remember);
+    Api.setToken(data.access_token, remember);
+    try { remember ? localStorage.setItem('eduai_remember_email', email) : localStorage.removeItem('eduai_remember_email'); } catch (e) {}
     btn.textContent='✓ Thành công'; btn.classList.add('ok');
     setTimeout(()=>{ window.location.href = data.role==='ADMIN' ? 'admin-dashboard.html' : 'dashboard.html'; }, 400);
   } catch (err) {

@@ -207,3 +207,13 @@ CREATE TABLE IF NOT EXISTS prompt_templates (
 );
 
 INSERT OR IGNORE INTO roles (id, name) VALUES (1, 'STUDENT'), (2, 'ADMIN');
+
+-- Quên mật khẩu: liên kết đặt lại dùng một lần, có hạn (chỉ lưu mã băm SHA-256 của token)
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

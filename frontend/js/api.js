@@ -5,14 +5,17 @@
 const API_BASE = window.EDUAI_API_BASE || "https://eduai-backend-tdtx.onrender.com";
 
 const Api = {
+  // "Ghi nhớ đăng nhập" bật: lưu lâu dài (localStorage). Tắt: chỉ giữ đến khi đóng trình duyệt (sessionStorage).
   token() {
-    return localStorage.getItem("eduai_token");
+    return sessionStorage.getItem("eduai_token") || localStorage.getItem("eduai_token");
   },
-  setToken(token) {
-    localStorage.setItem("eduai_token", token);
+  setToken(token, remember = true) {
+    this.clearToken();
+    (remember ? localStorage : sessionStorage).setItem("eduai_token", token);
   },
   clearToken() {
     localStorage.removeItem("eduai_token");
+    sessionStorage.removeItem("eduai_token");
   },
   async request(path, { method = "GET", body = null, auth = true } = {}) {
     const headers = { "Content-Type": "application/json" };
@@ -49,8 +52,14 @@ const Api = {
     return data;
   },
 
-  login(email, password) {
-    return this.request("/api/auth/login", { method: "POST", body: { email, password }, auth: false });
+  login(email, password, remember = false) {
+    return this.request("/api/auth/login", { method: "POST", body: { email, password, remember }, auth: false });
+  },
+  forgotPassword(email) {
+    return this.request("/api/auth/forgot-password", { method: "POST", body: { email }, auth: false });
+  },
+  resetPassword(token, new_password) {
+    return this.request("/api/auth/reset-password", { method: "POST", body: { token, new_password }, auth: false });
   },
   register(full_name, email, password, confirm_password) {
     return this.request("/api/auth/register", {
