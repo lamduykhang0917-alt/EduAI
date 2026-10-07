@@ -28,6 +28,8 @@ class LoginRequest(BaseModel):
 
 
 def _validate_password(password: str):
+    if re.search(r"\s", password):
+        raise HTTPException(400, "Mật khẩu không được chứa khoảng trắng")
     if len(password) < 8:
         raise HTTPException(400, "Mật khẩu phải có ít nhất 8 ký tự")
     if not re.search(r"[A-Z]", password) or not re.search(r"[0-9]", password):

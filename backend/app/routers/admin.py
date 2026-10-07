@@ -59,8 +59,8 @@ class CreateUserRequest(BaseModel):
 def create_user(payload: CreateUserRequest, admin: dict = Depends(require_admin)):
     if payload.role not in ("STUDENT", "ADMIN"):
         raise HTTPException(400, "Vai trò không hợp lệ")
-    if len(payload.password) < 8:
-        raise HTTPException(400, "Mật khẩu phải có ít nhất 8 ký tự")
+    if len(payload.password) < 8 or any(c.isspace() for c in payload.password):
+        raise HTTPException(400, "Mật khẩu phải có ít nhất 8 ký tự và không chứa khoảng trắng")
     with get_db() as db:
         existing = db.execute("SELECT id FROM users WHERE email = ?", (payload.email,)).fetchone()
         if existing:
